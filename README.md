@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/images/homelab-banner.svg" alt="homelab-ansible — infrastructure as code pour un homelab Debian" width="100%">
+  <img src="docs/images/homelab-banner.svg" alt="Bannière homelab-ansible avec les logos Debian, Ansible, Docker, NestJS, Cockpit et Beszel, et un résumé des composants système, sécurité, conteneurs, supervision, réseau et applications." width="100%">
   <br>
   <a href="https://github.com/alexandrebouttierdev/homelab-ansible/actions/workflows/ansible-checks.yml">
     <img src="https://github.com/alexandrebouttierdev/homelab-ansible/actions/workflows/ansible-checks.yml/badge.svg?branch=dev" alt="Ansible checks">
