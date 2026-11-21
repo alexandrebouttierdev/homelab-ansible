@@ -1,0 +1,34 @@
+---
+- name: Chargement obligatoire des vérifications préalables
+  ansible.builtin.import_playbook: preflight.yml
+
+- name: Provisionnement complet du serveur Debian 13 (Dell OptiPlex 3060)
+  hosts: homelab
+  become: true
+  roles:
+    - role: base
+      tags: [base]
+    - role: admin_user
+      tags: [security, admin_user]
+    - role: apparmor
+      tags: [security, apparmor]
+    - role: ssh
+      tags: [security, ssh]
+    - role: firewall
+      tags: [security, firewall]
+    - role: fail2ban
+      tags: [security, fail2ban]
+    - role: sysctl
+      tags: [security, sysctl]
+    - role: swap
+      tags: [system, swap]
+    - role: docker
+      tags: [docker]
+    - role: cockpit
+      tags: [monitoring, cockpit]
+    - role: beszel_agent
+      tags: [monitoring, beszel]
+    - role: cloudflared
+      tags: [network, cloudflared]
+    - role: verify
+      tags: [verify]

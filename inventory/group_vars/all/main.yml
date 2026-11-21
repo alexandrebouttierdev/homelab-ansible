@@ -1,0 +1,80 @@
+---
+# ==============================================================================
+# VARIABLES GLOBALES - HOMELAB DEBIAN 13 (DELL OPTIPLEX 3060 - 16 GO RAM)
+# Secrets : inventory/group_vars/all/vault.yml (Ansible Vault)
+# ==============================================================================
+
+# Système & Cible
+expected_distribution: Debian
+expected_distribution_major_version: "13"
+timezone: Europe/Paris
+min_disk_space_gb: 5
+
+# Compte Administrateur
+admin_user: alex
+admin_groups: [sudo]
+admin_public_key_path: "{{ lookup('env', 'HOME') }}/.ssh/homelab_ed25519.pub"
+
+# Réseau & Pare-feu
+# Adapter lors d'une migration VLAN (ex. 10.0.1.0/24 ou 10.0.10.0/24).
+# Ne pas modifier automatiquement tant que le LAN reste en 192.168.1.0/24.
+admin_cidr: "192.168.1.0/24"
+ssh_port: 22
+cockpit_port: 9090
+
+# Sécurité & Durcissement
+# IMPORTANT : passer ssh_hardening_enabled à true UNIQUEMENT après validation
+# d'une connexion par clé dans une deuxième session SSH.
+ssh_hardening_enabled: true
+ssh_password_authentication: "no"
+ssh_permit_root_login: "no"
+
+unattended_upgrades_enabled: true
+apparmor_enabled: true
+ufw_enabled: true
+fail2ban_enabled: true
+# Réseaux exclus de Fail2ban (évite de se bannir depuis le LAN d'admin)
+fail2ban_ignoreip: "127.0.0.1/8 ::1"
+
+# Mémoire & Swap (16 Go RAM + PostgreSQL + NestJS)
+swap_enabled: true
+swap_file_path: /swapfile
+swap_file_size_mb: 2048
+vm_swappiness: 10
+vm_vfs_cache_pressure: 50
+
+# Conteneurisation Docker
+docker_install: true
+docker_log_max_size: "10m"
+docker_log_max_file: "3"
+docker_live_restore: true
+# false limite certaines NAT legacy ; compatible Coolify en usage courant.
+docker_userland_proxy: false
+# Le groupe docker ≈ root. Laisser false et utiliser sudo docker.
+docker_add_admin_user: false
+
+# Supervision hôte : Cockpit & PCP (historique via pmlogger)
+cockpit_install: true
+pcp_pmlogger_enabled: true
+
+# Beszel Agent (binaire natif systemd)
+# Activer après avoir renseigné beszel_agent_key dans vault.yml
+beszel_agent_enabled: false
+beszel_agent_port: "45876"
+# Version et empreinte SHA-256 publiées officiellement de l'archive amd64.
+# Mettre à jour les deux valeurs ensemble après vérification indépendante.
+beszel_agent_version: ""
+beszel_agent_sha256: ""
+# Sous-réseau source du Hub Beszel si UFW est actif (réseau Docker du Hub).
+# Laisser vide pour ne pas ouvrir le port ; à déterminer via docker network inspect.
+beszel_hub_cidr: ""
+beszel_agent_key: ""
+# Optionnels (connexion sortante agent -> Hub). Laisser vides en mode classique
+# où le Hub joint l'agent sur LISTEN.
+beszel_agent_token: ""
+beszel_hub_url: ""
+
+# Cloudflare Tunnel natif (systemd)
+# Activer après avoir renseigné cloudflared_tunnel_token dans vault.yml
+cloudflared_enabled: false
+cloudflared_tunnel_token: ""

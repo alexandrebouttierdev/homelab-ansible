@@ -1,0 +1,13 @@
+---
+profile: basic
+exclude_paths:
+  - .venv
+  - .git
+  - .ansible
+  - "*.zip"
+  - provision-serveur.zip
+skip_list:
+  - yaml[line-length]
+  - name[template]
+warn_list:
+  - experimental

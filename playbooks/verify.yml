@@ -1,0 +1,7 @@
+---
+- name: Vérifications post-déploiement (Health Checks)
+  hosts: homelab
+  become: true
+  roles:
+    - role: verify
+      tags: [verify]

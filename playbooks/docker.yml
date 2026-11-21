@@ -1,0 +1,7 @@
+---
+- name: Installation et durcissement de Docker Engine
+  hosts: homelab
+  become: true
+  roles:
+    - role: docker
+      tags: [docker]

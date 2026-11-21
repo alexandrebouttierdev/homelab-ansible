@@ -1,0 +1,17 @@
+---
+- name: Configuration de la sécurité et du durcissement
+  hosts: homelab
+  become: true
+  roles:
+    - role: admin_user
+      tags: [security, admin_user]
+    - role: apparmor
+      tags: [security, apparmor]
+    - role: ssh
+      tags: [security, ssh]
+    - role: firewall
+      tags: [security, firewall]
+    - role: fail2ban
+      tags: [security, fail2ban]
+    - role: sysctl
+      tags: [security, sysctl]

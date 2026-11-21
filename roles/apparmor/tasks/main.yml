@@ -1,0 +1,15 @@
+---
+- name: Installer AppArmor et ses utilitaires
+  ansible.builtin.apt:
+    name:
+      - apparmor
+      - apparmor-utils
+    state: present
+  when: apparmor_enabled | bool
+
+- name: Activer et démarrer AppArmor
+  ansible.builtin.service:
+    name: apparmor
+    state: started
+    enabled: true
+  when: apparmor_enabled | bool

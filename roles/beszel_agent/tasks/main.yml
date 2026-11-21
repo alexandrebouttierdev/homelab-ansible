@@ -1,0 +1,152 @@
+---
+- name: Vérifier que la clé publique Beszel est définie si l'agent est activé
+  ansible.builtin.assert:
+    that:
+      - beszel_agent_key | length > 20
+      - "'REMPLACER' not in beszel_agent_key"
+    fail_msg: >-
+      Définir beszel_agent_key dans inventory/group_vars/all/vault.yml
+      (Ansible Vault), puis activer beszel_agent_enabled.
+  when: beszel_agent_enabled | bool
+
+- name: Vérifier la version épinglée et son empreinte Beszel
+  ansible.builtin.assert:
+    that:
+      - beszel_agent_version | regex_search('^[0-9]+\.[0-9]+\.[0-9]+$')
+      - beszel_agent_sha256 | regex_search('^[a-fA-F0-9]{64}$')
+    fail_msg: >-
+      Définir beszel_agent_version et beszel_agent_sha256 avec une release
+      Beszel vérifiée avant d'activer l'agent.
+  when: beszel_agent_enabled | bool
+
+- name: Vérifier si le binaire beszel-agent est déjà présent
+  ansible.builtin.stat:
+    path: /usr/local/bin/beszel-agent
+  register: beszel_agent_bin_stat
+  when: beszel_agent_enabled | bool
+
+- name: Vérifier la version locale de beszel-agent si installé
+  ansible.builtin.command:
+    cmd: /usr/local/bin/beszel-agent -v
+  register: beszel_agent_current_version
+  changed_when: false
+  failed_when: false
+  when: beszel_agent_enabled | bool and beszel_agent_bin_stat.stat.exists | default(false)
+
+- name: Télécharger et installer le binaire beszel-agent
+  when: >
+    (beszel_agent_enabled | bool) and (
+      not (beszel_agent_bin_stat.stat.exists | default(false)) or
+      (beszel_agent_version not in (beszel_agent_current_version.stdout | default('')))
+    )
+  block:
+    - name: Télécharger l'archive beszel-agent (Linux amd64)
+      ansible.builtin.get_url:
+        url: "https://github.com/henrygd/beszel/releases/download/v{{ beszel_agent_version }}/beszel-agent_linux_amd64.tar.gz"
+        dest: /tmp/beszel-agent.tar.gz
+        mode: "0644"
+        checksum: "sha256:{{ beszel_agent_sha256 }}"
+
+    - name: Créer le dossier temporaire d'extraction
+      ansible.builtin.file:
+        path: /tmp/beszel-agent-extract
+        state: directory
+        mode: "0755"
+
+    - name: Extraire l'archive beszel-agent
+      ansible.builtin.unarchive:
+        src: /tmp/beszel-agent.tar.gz
+        dest: /tmp/beszel-agent-extract
+        remote_src: true
+
+    - name: Copier le binaire dans /usr/local/bin/beszel-agent
+      ansible.builtin.copy:
+        src: /tmp/beszel-agent-extract/beszel-agent
+        dest: /usr/local/bin/beszel-agent
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0755"
+      notify: Restart beszel-agent
+
+    - name: Nettoyer les fichiers temporaires
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/beszel-agent.tar.gz
+        - /tmp/beszel-agent-extract
+
+# L'appartenance au groupe docker ≈ root via /var/run/docker.sock.
+# Nécessaire pour les métriques des conteneurs — compromis documenté.
+- name: S'assurer que le groupe docker existe
+  ansible.builtin.group:
+    name: docker
+    state: present
+  when: beszel_agent_enabled | bool
+
+- name: Créer l'utilisateur système dédié beszel
+  ansible.builtin.user:
+    name: beszel
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+    groups: docker
+    append: true
+  when: beszel_agent_enabled | bool
+
+- name: Créer le répertoire de configuration /etc/beszel
+  ansible.builtin.file:
+    path: /etc/beszel
+    state: directory
+    owner: root
+    group: beszel
+    mode: "0750"
+  when: beszel_agent_enabled | bool
+
+- name: Déployer le fichier d'environnement protégé (/etc/beszel/agent.env)
+  ansible.builtin.copy:
+    dest: /etc/beszel/agent.env
+    owner: root
+    group: beszel
+    mode: "0640"
+    content: |
+      LISTEN={{ beszel_agent_port }}
+      KEY="{{ beszel_agent_key }}"
+      {% if beszel_agent_token | default('') | length > 0 %}
+      TOKEN="{{ beszel_agent_token }}"
+      {% endif %}
+      {% if beszel_hub_url | default('') | length > 0 %}
+      HUB_URL="{{ beszel_hub_url }}"
+      {% endif %}
+  when: beszel_agent_enabled | bool
+  no_log: true
+  notify: Restart beszel-agent
+
+- name: Installer le service systemd beszel-agent
+  ansible.builtin.template:
+    src: beszel-agent.service.j2
+    dest: /etc/systemd/system/beszel-agent.service
+    owner: root
+    group: root
+    mode: "0644"
+  when: beszel_agent_enabled | bool
+  notify:
+    - Reload systemd
+    - Restart beszel-agent
+
+- name: Activer et démarrer beszel-agent
+  ansible.builtin.systemd_service:
+    name: beszel-agent.service
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: beszel_agent_enabled | bool
+
+- name: Arrêter beszel-agent si désactivé
+  ansible.builtin.systemd_service:
+    name: beszel-agent.service
+    enabled: false
+    state: stopped
+  when: not (beszel_agent_enabled | bool)
+  failed_when: false

@@ -1,0 +1,32 @@
+---
+# Sur Debian 13, le paquet cockpit-pcp n'est plus publié.
+# Cockpit 337 fournit le module metrics ; PCP (pmcd + pmlogger) assure
+# la collecte et l'historique côté Performance Co-Pilot.
+- name: Installer Cockpit et Performance Co-Pilot (PCP)
+  ansible.builtin.apt:
+    name:
+      - cockpit
+      - pcp
+    state: present
+  when: cockpit_install | bool
+
+- name: Activer et démarrer le collecteur PCP (pmcd)
+  ansible.builtin.systemd_service:
+    name: pmcd
+    state: started
+    enabled: true
+  when: cockpit_install | bool
+
+- name: Activer et démarrer pmlogger (historique des métriques)
+  ansible.builtin.systemd_service:
+    name: pmlogger
+    state: started
+    enabled: true
+  when: cockpit_install | bool and (pcp_pmlogger_enabled | default(true) | bool)
+
+- name: Activer et démarrer le socket Cockpit
+  ansible.builtin.systemd_service:
+    name: cockpit.socket
+    state: started
+    enabled: true
+  when: cockpit_install | bool

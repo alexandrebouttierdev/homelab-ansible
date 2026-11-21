@@ -1,0 +1,7 @@
+---
+- name: Installation du tunnel Cloudflare natif (systemd)
+  hosts: homelab
+  become: true
+  roles:
+    - role: cloudflared
+      tags: [network, cloudflared]

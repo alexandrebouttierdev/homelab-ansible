@@ -1,0 +1,26 @@
+---
+- name: Vérifier que le compte administrateur existe
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ admin_user }}"
+
+- name: Ajouter le compte au groupe sudo
+  ansible.builtin.user:
+    name: "{{ admin_user }}"
+    groups: "{{ admin_groups }}"
+    append: true
+
+- name: Créer le répertoire .ssh de l'administrateur
+  ansible.builtin.file:
+    path: "/home/{{ admin_user }}/.ssh"
+    state: directory
+    owner: "{{ admin_user }}"
+    group: "{{ admin_user }}"
+    mode: "0700"
+
+- name: Installer la clé publique SSH du contrôleur si disponible
+  ansible.posix.authorized_key:
+    user: "{{ admin_user }}"
+    state: present
+    key: "{{ lookup('ansible.builtin.file', admin_public_key_path) }}"
+  when: lookup('ansible.builtin.file', admin_public_key_path, errors='ignore') | length > 0

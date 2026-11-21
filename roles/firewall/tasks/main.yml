@@ -1,0 +1,87 @@
+---
+# UFW filtre le trafic hôte. Les ports publiés par Docker (-p / ports:)
+# transitent souvent via les chaînes DOCKER* et peuvent contourner UFW.
+# Ne pas publier PostgreSQL/Redis ; s'appuyer aussi sur OPNsense et
+# Cloudflare Tunnel. Aucune règle DOCKER-USER n'est imposée ici afin de
+# ne pas casser Coolify sans validation manuelle.
+- name: Installer UFW
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+  when: ufw_enabled | bool
+
+- name: Vérifier le backend firewall UFW
+  ansible.builtin.command:
+    cmd: ufw status verbose
+  register: firewall_ufw_status
+  changed_when: false
+  failed_when: false
+  when: ufw_enabled | bool
+
+- name: Afficher un rappel sur Docker et UFW
+  ansible.builtin.debug:
+    msg: >-
+      UFW ne filtre pas nécessairement les ports publiés par Docker.
+      Vérifier les ports exposés (docker ps) et le filtrage OPNsense.
+      Aucun port entrant n'est requis pour cloudflared.
+  when: ufw_enabled | bool
+
+- name: Autoriser SSH depuis le réseau d'administration ({{ admin_cidr }})
+  community.general.ufw:
+    rule: allow
+    port: "{{ ssh_port | string }}"
+    proto: tcp
+    from_ip: "{{ admin_cidr }}"
+    comment: provision-serveur-ssh
+  when: ufw_enabled | bool
+
+- name: Autoriser Cockpit depuis le réseau d'administration ({{ admin_cidr }})
+  community.general.ufw:
+    rule: allow
+    port: "{{ cockpit_port | string }}"
+    proto: tcp
+    from_ip: "{{ admin_cidr }}"
+    comment: provision-serveur-cockpit
+  when:
+    - ufw_enabled | bool
+    - cockpit_install | bool
+
+- name: Autoriser le Hub Beszel à joindre l'agent depuis son réseau Docker
+  community.general.ufw:
+    rule: allow
+    port: "{{ beszel_agent_port | string }}"
+    proto: tcp
+    from_ip: "{{ beszel_hub_cidr }}"
+    comment: provision-serveur-beszel
+  when:
+    - ufw_enabled | bool
+    - beszel_agent_enabled | bool
+    - beszel_hub_cidr | length > 0
+
+- name: Définir la politique entrante par défaut (deny)
+  community.general.ufw:
+    direction: incoming
+    policy: deny
+  when: ufw_enabled | bool
+
+- name: Définir la politique sortante par défaut (allow)
+  community.general.ufw:
+    direction: outgoing
+    policy: allow
+  when: ufw_enabled | bool
+
+- name: Installer les dépendances pour filtrer les ports Docker
+  ansible.builtin.apt:
+    name:
+      - iptables
+    state: present
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  when:
+    - ufw_enabled | bool
+    - docker_install | bool
+
+- name: Activer UFW
+  community.general.ufw:
+    state: enabled
+  when: ufw_enabled | bool

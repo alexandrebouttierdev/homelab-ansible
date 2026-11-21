@@ -1,0 +1,15 @@
+# Géré par Ansible (provision-serveur)
+# --- Sécurité noyau ---
+kernel.kptr_restrict = 2
+fs.protected_symlinks = 1
+fs.protected_hardlinks = 1
+
+# --- Mémoire (16 Go RAM + PostgreSQL) ---
+# overcommit_memory laissé à 0 (défaut noyau) volontairement
+vm.swappiness = {{ vm_swappiness }}
+vm.vfs_cache_pressure = {{ vm_vfs_cache_pressure }}
+
+# --- Conteneurs, Node.js/NestJS & réseau ---
+fs.inotify.max_user_watches = 524288
+fs.inotify.max_user_instances = 512
+net.core.somaxconn = 1024

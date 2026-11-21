@@ -1,0 +1,79 @@
+---
+- name: Installer OpenSSH Server
+  ansible.builtin.apt:
+    name: openssh-server
+    state: present
+
+- name: Rechercher les clés hôte SSH publiques
+  ansible.builtin.find:
+    paths: /etc/ssh
+    patterns: "ssh_host_*_key.pub"
+    file_type: file
+  register: ssh_host_public_keys
+  when: ssh_hardening_enabled | bool
+
+- name: Refuser le durcissement SSH si aucune clé hôte n'est disponible
+  ansible.builtin.assert:
+    that:
+      - ssh_host_public_keys.matched | int > 0
+    fail_msg: >-
+      Aucune clé hôte SSH détectée dans /etc/ssh.
+      Générer les clés hôte avec ssh-keygen avant d'activer le durcissement,
+      depuis une session d'administration déjà ouverte.
+  when: ssh_hardening_enabled | bool
+
+- name: Vérifier qu'une clé publique administrateur est disponible avant le hardening
+  ansible.builtin.assert:
+    that:
+      - lookup('ansible.builtin.file', admin_public_key_path, errors='ignore') | length > 0
+    fail_msg: >-
+      Clé publique introuvable : {{ admin_public_key_path }}.
+      Ne pas activer le hardening SSH avant d'avoir installé et testé une clé.
+  when: ssh_hardening_enabled | bool
+
+- name: Vérifier qu'une authorized_key est déjà présente pour l'administrateur
+  ansible.builtin.stat:
+    path: "/home/{{ admin_user }}/.ssh/authorized_keys"
+  register: ssh_admin_authorized_keys
+  when: ssh_hardening_enabled | bool
+
+- name: Refuser le hardening si authorized_keys est absent ou vide
+  ansible.builtin.assert:
+    that:
+      - ssh_admin_authorized_keys.stat.exists
+      - ssh_admin_authorized_keys.stat.size | int > 0
+    fail_msg: >-
+      /home/{{ admin_user }}/.ssh/authorized_keys est absent ou vide.
+      Exécuter le rôle admin_user et tester une connexion par clé avant
+      d'activer ssh_hardening_enabled.
+  when: ssh_hardening_enabled | bool
+
+- name: Appliquer le durcissement SSH (sshd_config.d)
+  ansible.builtin.template:
+    src: 00-provision-serveur.conf.j2
+    dest: /etc/ssh/sshd_config.d/00-provision-serveur.conf
+    owner: root
+    group: root
+    mode: "0600"
+  when: ssh_hardening_enabled | bool
+  register: ssh_hardening_config
+  notify: Restart ssh
+
+- name: Valider la configuration sshd avant redémarrage
+  ansible.builtin.command:
+    cmd: /usr/sbin/sshd -t
+  changed_when: false
+  when: ssh_hardening_enabled | bool and ssh_hardening_config is changed
+
+- name: Retirer le drop-in de hardening si le durcissement est désactivé
+  ansible.builtin.file:
+    path: /etc/ssh/sshd_config.d/00-provision-serveur.conf
+    state: absent
+  when: not (ssh_hardening_enabled | bool)
+  notify: Restart ssh
+
+- name: S'assurer que le service SSH est actif
+  ansible.builtin.service:
+    name: ssh
+    state: started
+    enabled: true

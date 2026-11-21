@@ -1,0 +1,85 @@
+---
+- name: Mettre à jour le cache APT
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Installer les paquets et utilitaires système essentiels
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - curl
+      - wget
+      - vim
+      - git
+      - htop
+      - btop
+      - jq
+      - unzip
+      - gnupg
+      - chrony
+      - unattended-upgrades
+      - needrestart
+      - sudo
+    state: present
+
+- name: Configurer le fuseau horaire
+  community.general.timezone:
+    name: "{{ timezone }}"
+
+- name: Activer et démarrer Chrony (synchronisation NTP)
+  ansible.builtin.service:
+    name: chrony
+    state: started
+    enabled: true
+
+- name: Configurer les mises à jour de sécurité automatiques (unattended-upgrades)
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "{{ '1' if unattended_upgrades_enabled else '0' }}";
+
+- name: S'assurer que le répertoire needrestart conf.d existe
+  ansible.builtin.file:
+    path: /etc/needrestart/conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Configurer needrestart (lister uniquement, sans redémarrage automatique)
+  ansible.builtin.copy:
+    dest: /etc/needrestart/conf.d/99-provision-serveur.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Géré par Ansible (provision-serveur)
+      # l = list only — pas de redémarrage automatique de services
+      $nrconf{restart} = 'l';
+
+- name: S'assurer que le répertoire journald.conf.d existe
+  ansible.builtin.file:
+    path: /etc/systemd/journald.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Configurer la rotation journald (limiter la pression sur le SSD)
+  ansible.builtin.copy:
+    dest: /etc/systemd/journald.conf.d/99-provision-serveur.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Journal]
+      SystemMaxUse=500M
+      SystemMaxFileSize=50M
+      MaxRetentionSec=30day
+      Compress=yes
+  notify: Restart journald

@@ -1,0 +1,18 @@
+---
+# ==============================================================================
+# MODÈLE DE SECRETS (ANSIBLE VAULT)
+# Copier puis chiffrer :
+#   cp inventory/group_vars/all/vault.yml.example inventory/group_vars/all/vault.yml
+#   ansible-vault encrypt inventory/group_vars/all/vault.yml
+# ==============================================================================
+
+# Token du tunnel Cloudflare (Zero Trust -> Networks -> Tunnels)
+cloudflared_tunnel_token: "REMPLACER_PAR_LE_TOKEN_DU_TUNNEL"
+
+# Clé publique affichée par le Hub Beszel lors de l'ajout du système
+beszel_agent_key: "REMPLACER_PAR_LA_CLE_PUBLIQUE_BESZEL"
+
+# Optionnels : connexion sortante agent -> Hub (WebSocket).
+# Laisser commentés si le Hub joint l'agent en local sur le port LISTEN.
+# beszel_agent_token: "REMPLACER_PAR_LE_TOKEN_BESZEL"
+# beszel_hub_url: "https://status.votredomaine.fr"

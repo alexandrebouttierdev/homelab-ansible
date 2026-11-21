@@ -1,0 +1,15 @@
+---
+description: Instructions globales pour les tâches Ansible et système de provision-serveur.
+alwaysApply: true
+---
+
+Suivre les instructions communes dans `AGENTS.md`. Répondre en français.
+Avant toute modification, vérifier les fichiers et l’état réellement
+disponible. Ne pas modifier le serveur, SSH, UFW, Docker, Coolify,
+PostgreSQL ou ses sauvegardes sans demande explicite. Protéger les secrets,
+préserver l’accès SSH, utiliser les modules Ansible natifs et lancer
+`./scripts/static-checks.sh` après toute modification.
+
+Lire `README.md`, `docs/ARCHITECTURE.md` et `docs/SECURITY.md` selon la
+tâche. Ansible gère l’hôte ; Coolify gère les applications et leurs
+sauvegardes.

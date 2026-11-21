@@ -1,0 +1,107 @@
+---
+- name: Vérifier que le service SSH est actif
+  ansible.builtin.systemd_service:
+    name: ssh
+    state: started
+    enabled: true
+  check_mode: true
+  register: verify_ssh
+  failed_when: verify_ssh is changed or verify_ssh is failed
+
+- name: Vérifier que AppArmor est actif
+  ansible.builtin.systemd_service:
+    name: apparmor
+    state: started
+    enabled: true
+  check_mode: true
+  register: verify_apparmor
+  failed_when: verify_apparmor is changed or verify_apparmor is failed
+  when: apparmor_enabled | bool
+
+- name: Vérifier que Fail2ban est actif
+  ansible.builtin.systemd_service:
+    name: fail2ban
+    state: started
+    enabled: true
+  check_mode: true
+  register: verify_fail2ban
+  failed_when: verify_fail2ban is changed or verify_fail2ban is failed
+  when: fail2ban_enabled | bool
+
+- name: Vérifier le statut UFW
+  ansible.builtin.command:
+    cmd: ufw status
+  register: verify_ufw
+  changed_when: false
+  when: ufw_enabled | bool
+
+- name: Vérifier que Docker fonctionne correctement
+  ansible.builtin.command:
+    cmd: docker info
+  changed_when: false
+  when: docker_install | bool
+
+- name: Vérifier que Cockpit est actif
+  ansible.builtin.systemd_service:
+    name: cockpit.socket
+    state: started
+    enabled: true
+  check_mode: true
+  register: verify_cockpit
+  failed_when: verify_cockpit is changed or verify_cockpit is failed
+  when: cockpit_install | bool
+
+- name: Vérifier que pmlogger est actif
+  ansible.builtin.systemd_service:
+    name: pmlogger
+    state: started
+    enabled: true
+  check_mode: true
+  register: verify_pmlogger
+  failed_when: verify_pmlogger is changed or verify_pmlogger is failed
+  when: cockpit_install | bool and (pcp_pmlogger_enabled | default(true) | bool)
+
+- name: Vérifier que l'agent Beszel est actif
+  ansible.builtin.systemd_service:
+    name: beszel-agent.service
+    state: started
+    enabled: true
+  check_mode: true
+  register: verify_beszel
+  failed_when: verify_beszel is changed or verify_beszel is failed
+  when: beszel_agent_enabled | bool
+
+- name: Vérifier que le tunnel Cloudflare est actif
+  ansible.builtin.systemd_service:
+    name: cloudflared-homelab.service
+    state: started
+    enabled: true
+  check_mode: true
+  register: verify_cloudflared
+  failed_when: verify_cloudflared is changed or verify_cloudflared is failed
+  when: cloudflared_enabled | bool
+
+- name: Vérifier les permissions du token Cloudflare
+  ansible.builtin.stat:
+    path: /etc/cloudflared/tunnel.token
+  register: verify_cf_token
+  when: cloudflared_enabled | bool
+
+- name: Contrôler le mode du token Cloudflare
+  ansible.builtin.assert:
+    that:
+      - verify_cf_token.stat.exists
+      - verify_cf_token.stat.mode == '0640'
+    fail_msg: "Permissions incorrectes sur /etc/cloudflared/tunnel.token (attendu 0640)."
+  when: cloudflared_enabled | bool
+
+- name: Afficher le statut final de validation
+  ansible.builtin.debug:
+    msg:
+      - "============================================================"
+      - "PROVISIONNEMENT VALIDÉ : Debian prêt pour Coolify,"
+      - "PostgreSQL et les APIs NestJS."
+      - "UFW : {{ verify_ufw.stdout_lines | default(['n/a']) | first }}"
+      - "Prochaine étape : docs/DEPLOIEMENT-APPLICATIONS.md"
+      - "Sauvegardes : docs/SAUVEGARDES.md"
+      - "============================================================"

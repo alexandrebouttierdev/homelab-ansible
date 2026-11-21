@@ -1,0 +1,71 @@
+---
+- name: Vérifications préalables (Preflight Checks)
+  hosts: homelab
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Vérifier que le compte peut obtenir les privilèges root
+      ansible.builtin.command:
+        cmd: id -u
+      register: preflight_root_uid
+      changed_when: false
+
+    - name: Vérifier que le préflight s'exécute avec les privilèges root
+      ansible.builtin.assert:
+        that:
+          - preflight_root_uid.stdout | trim == '0'
+        fail_msg: >-
+          L'élévation sudo a échoué. Si c'est le premier provisionnement,
+          exécuter playbooks/bootstrap.yml avec --ask-become-pass en saisissant
+          le mot de passe root, puis se reconnecter comme {{ admin_user }}.
+
+    - name: Vérifier que la cible est Debian 13
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == expected_distribution
+          - ansible_distribution_major_version == expected_distribution_major_version
+        fail_msg: "Ce dépôt cible exclusivement {{ expected_distribution }} {{ expected_distribution_major_version }}."
+        success_msg: "OS validé : {{ ansible_distribution }} {{ ansible_distribution_version }}."
+
+    - name: Vérifier l'espace disque disponible sur /
+      ansible.builtin.assert:
+        that:
+          - (ansible_mounts | selectattr('mount', 'equalto', '/') | map(attribute='size_available') | first) > (min_disk_space_gb * 1024 * 1024 * 1024)
+        fail_msg: "Espace disque insuffisant sur / (minimum {{ min_disk_space_gb }} Gio requis)."
+        success_msg: "Espace disque suffisant sur /."
+
+    - name: Vérifier que l'inventaire ne contient plus la valeur de remplacement
+      ansible.builtin.assert:
+        that:
+          - hostvars[inventory_hostname].ansible_host is defined
+          - hostvars[inventory_hostname].ansible_host != 'CHANGE_ME'
+        fail_msg: "Renseigner l'adresse IP du serveur dans inventory/hosts.yml."
+
+    - name: Vérifier la présence de Python 3
+      ansible.builtin.command:
+        cmd: python3 --version
+      changed_when: false
+
+    - name: Vérifier la présence de la clé publique SSH locale (avertissement)
+      ansible.builtin.stat:
+        path: "{{ admin_public_key_path }}"
+      register: preflight_pubkey
+      delegate_to: localhost
+      become: false
+
+    - name: Avertir si la clé publique SSH est absente
+      ansible.builtin.debug:
+        msg: >-
+          Clé publique introuvable ({{ admin_public_key_path }}).
+          Le rôle admin_user ne pourra pas déployer de clé ; le hardening SSH
+          restera bloqué tant qu'une clé n'est pas installée.
+      when: not preflight_pubkey.stat.exists
+
+    - name: Afficher le résumé matériel de l'hôte
+      ansible.builtin.debug:
+        msg:
+          - "Hôte : {{ inventory_hostname }} ({{ ansible_hostname }})"
+          - "OS : {{ ansible_distribution }} {{ ansible_distribution_version }} | Noyau : {{ ansible_kernel }}"
+          - "CPU : {{ ansible_processor_nproc | default(ansible_processor_vcpus | default('inconnu')) }} vCPU | RAM : {{ ansible_memtotal_mb }} Mio"
+          - "ssh_hardening_enabled={{ ssh_hardening_enabled }} | docker={{ docker_install }}"
+          - "beszel={{ beszel_agent_enabled }} | cloudflared={{ cloudflared_enabled }}"

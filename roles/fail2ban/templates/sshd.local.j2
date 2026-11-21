@@ -1,0 +1,10 @@
+[DEFAULT]
+ignoreip = {{ fail2ban_ignoreip }}
+
+[sshd]
+enabled = true
+port = {{ ssh_port }}
+backend = systemd
+maxretry = 3
+bantime = 3600
+findtime = 600

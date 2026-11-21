@@ -1,0 +1,148 @@
+---
+- name: Installer les prérequis du dépôt Docker
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - curl
+    state: present
+  when: docker_install | bool
+
+- name: Déterminer l'architecture APT Docker
+  ansible.builtin.set_fact:
+    docker_apt_arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else ansible_architecture }}"
+  when: docker_install | bool
+
+- name: Retirer l'ancien fichier sources.list Docker (migration deb822)
+  ansible.builtin.file:
+    path: /etc/apt/sources.list.d/docker.list
+    state: absent
+  when: docker_install | bool
+
+- name: Ajouter le dépôt officiel Docker (Debian {{ ansible_distribution_release }})
+  ansible.builtin.deb822_repository:
+    name: docker
+    types: deb
+    uris: https://download.docker.com/linux/debian
+    suites: "{{ ansible_distribution_release }}"
+    components:
+      - stable
+    architectures:
+      - "{{ docker_apt_arch }}"
+    signed_by: https://download.docker.com/linux/debian/gpg
+    state: present
+    enabled: true
+  when: docker_install | bool
+
+- name: Installer Docker Engine, Buildx et Compose
+  ansible.builtin.apt:
+    update_cache: true
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+  when: docker_install | bool
+
+- name: Créer le répertoire /etc/docker
+  ansible.builtin.file:
+    path: /etc/docker
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: docker_install | bool
+
+- name: Configurer le démon Docker (logs, live-restore, pas d'écoute TCP)
+  ansible.builtin.template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: "0644"
+  when: docker_install | bool
+  notify: Restart docker
+
+- name: Lire daemon.json pour contrôle anti-exposition TCP
+  ansible.builtin.slurp:
+    src: /etc/docker/daemon.json
+  register: docker_daemon_slurp
+  when: docker_install | bool
+
+- name: Vérifier qu'aucune écoute TCP Docker n'est configurée
+  ansible.builtin.assert:
+    that:
+      - "'tcp://' not in docker_daemon_content"
+      - "'\"hosts\"' not in docker_daemon_content"
+    fail_msg: >-
+      daemon.json ne doit pas exposer le démon Docker en TCP.
+      Retirer toute clé hosts / tcp:// avant de continuer.
+  vars:
+    docker_daemon_content: "{{ docker_daemon_slurp.content | b64decode }}"
+  when: docker_install | bool
+
+# Le groupe docker équivaut pratiquement à root. Désactivé par défaut.
+- name: Ajouter l'administrateur au groupe docker si explicitement demandé
+  ansible.builtin.user:
+    name: "{{ admin_user }}"
+    groups: docker
+    append: true
+  when: docker_install | bool and (docker_add_admin_user | bool)
+
+- name: Activer et démarrer le service Docker
+  ansible.builtin.systemd_service:
+    name: docker
+    state: started
+    enabled: true
+  when: docker_install | bool
+
+- name: Autoriser les connexions établies dans DOCKER-USER
+  ansible.builtin.iptables:
+    chain: DOCKER-USER
+    chain_management: true
+    state: present
+    ctstate:
+      - RELATED
+      - ESTABLISHED
+    jump: RETURN
+  when:
+    - ufw_enabled | bool
+    - docker_install | bool
+
+- name: Autoriser les connexions locales dans DOCKER-USER
+  ansible.builtin.iptables:
+    chain: DOCKER-USER
+    source: "127.0.0.1/32"
+    jump: RETURN
+  when:
+    - ufw_enabled | bool
+    - docker_install | bool
+
+- name: Autoriser le réseau d'administration dans DOCKER-USER
+  ansible.builtin.iptables:
+    chain: DOCKER-USER
+    source: "{{ admin_cidr }}"
+    jump: RETURN
+  when:
+    - ufw_enabled | bool
+    - docker_install | bool
+
+- name: Autoriser les réseaux Docker internes dans DOCKER-USER
+  ansible.builtin.iptables:
+    chain: DOCKER-USER
+    source: "{{ item }}"
+    jump: RETURN
+  loop:
+    - "172.16.0.0/12"
+  when:
+    - ufw_enabled | bool
+    - docker_install | bool
+
+- name: Bloquer les autres connexions entrantes vers Docker
+  ansible.builtin.iptables:
+    chain: DOCKER-USER
+    jump: DROP
+  when:
+    - ufw_enabled | bool
+    - docker_install | bool

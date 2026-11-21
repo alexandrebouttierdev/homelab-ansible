@@ -1,0 +1,60 @@
+---
+- name: Bootstrap initial de sudo pour Debian 13
+  hosts: homelab
+  gather_facts: true
+  become: true
+  become_method: ansible.builtin.su
+  become_user: root
+  tasks:
+    - name: Vérifier que la cible est Debian 13
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == expected_distribution
+          - ansible_distribution_major_version == expected_distribution_major_version
+        fail_msg: >-
+          Ce bootstrap cible exclusivement {{ expected_distribution }}
+          {{ expected_distribution_major_version }}.
+
+    - name: Mettre à jour le cache APT
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Installer sudo
+      ansible.builtin.apt:
+        name: sudo
+        state: present
+
+    - name: Ajouter le compte administrateur au groupe sudo
+      ansible.builtin.user:
+        name: "{{ admin_user }}"
+        groups: sudo
+        append: true
+
+    - name: Autoriser le groupe sudo avec authentification par mot de passe
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/90-provision-serveur-admin
+        owner: root
+        group: root
+        mode: "0440"
+        content: |
+          %sudo ALL=(ALL:ALL) ALL
+        validate: /usr/sbin/visudo -cf %s
+
+    - name: Retirer l'ancienne règle locale sans mot de passe si elle existe
+      ansible.builtin.file:
+        path: /etc/sudoers.d/ansible-alex
+        state: absent
+
+    - name: Vérifier la syntaxe de la configuration sudo
+      ansible.builtin.command:
+        cmd: /usr/sbin/visudo -c
+      changed_when: false
+
+    - name: Afficher la prochaine étape
+      ansible.builtin.debug:
+        msg: >-
+          Bootstrap terminé. Ouvrir une nouvelle connexion SSH pour que
+          l'appartenance au groupe sudo soit prise en compte, puis lancer
+          playbooks/preflight.yml avec --ask-become-pass en saisissant le
+          mot de passe du compte {{ admin_user }}.
