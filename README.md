@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/images/homelab-banner.svg" alt="provision-serveur — infrastructure as code pour un homelab Debian" width="100%">
+  <img src="docs/images/homelab-banner.svg" alt="homelab-ansible — infrastructure as code pour un homelab Debian" width="100%">
   <br>
   <a href="https://github.com/alexandrebouttierdev/homelab-ansible/actions/workflows/ansible-checks.yml">
     <img src="https://github.com/alexandrebouttierdev/homelab-ansible/actions/workflows/ansible-checks.yml/badge.svg?branch=dev" alt="Ansible checks">
@@ -22,7 +22,7 @@
 
 ## À propos
 
-`provision-serveur` automatise la configuration système d’un homelab sous
+`homelab-ansible` automatise la configuration système d’un homelab sous
 **Debian 13 (Trixie)**. Le projet vise une infrastructure simple à comprendre,
 reproductible et adaptée aux ressources limitées d’un serveur personnel.
 
@@ -91,11 +91,11 @@ flowchart LR
 
 ```bash
 sudo dnf install python3 python3-pip
-python3 -m venv ~/.venvs/provision-serveur
-source ~/.venvs/provision-serveur/bin/activate
+python3 -m venv ~/.venvs/homelab-ansible
+source ~/.venvs/homelab-ansible/bin/activate
 python -m pip install ansible-core ansible-lint yamllint
 
-cd /chemin/vers/provision-serveur
+cd /chemin/vers/homelab-ansible
 ansible-galaxy collection install -r requirements.yml
 ```
 
@@ -214,7 +214,7 @@ Pour lancer les mêmes contrôles localement :
 
 Les consignes communes sont dans [`AGENTS.md`](AGENTS.md). Les points d’entrée
 pour Claude Code et Cursor sont dans [`CLAUDE.md`](CLAUDE.md) et
-[`.cursor/rules/provision-serveur.mdc`](.cursor/rules/provision-serveur.mdc).
+[`.cursor/rules/homelab-ansible.mdc`](.cursor/rules/homelab-ansible.mdc).
 
 ## ⚠️ Limites et précautions
 

@@ -40,8 +40,8 @@ echo "==> ansible-inventory --graph"
 ansible-inventory --graph
 
 echo "==> ansible-playbook --list-tasks (site.yml)"
-ansible-playbook playbooks/site.yml --list-tasks | tee /tmp/provision-serveur-tasks.txt >/dev/null
-wc -l /tmp/provision-serveur-tasks.txt
+ansible-playbook playbooks/site.yml --list-tasks | tee /tmp/homelab-ansible-tasks.txt >/dev/null
+wc -l /tmp/homelab-ansible-tasks.txt
 
 echo "==> ansible-playbook --check --diff --syntax-check (site.yml)"
 ansible-playbook playbooks/site.yml --check --diff --syntax-check

@@ -1,5 +1,5 @@
 ---
-description: Instructions globales pour les tâches Ansible et système de provision-serveur.
+description: Instructions globales pour les tâches Ansible et système de homelab-ansible.
 alwaysApply: true
 ---
 

@@ -7,8 +7,8 @@ spécialisé dans Ansible, Debian, la sécurité des infrastructures
 domestiques, Docker, la supervision et l'optimisation de ressources
 limitées.
 
-Ta mission est de réaliser un audit approfondi de mon projet Ansible
-existant, nommé `provision-serveur`.
+Ta mission est de réaliser un audit approfondi de mon projet Ansible,
+`homelab-ansible` (anciennement nommé `provision-serveur`).
 
 L'objectif est d'obtenir une configuration **sécurisée, performante,
 fiable, simple, maintenable, correctement architecturée et entièrement
@@ -86,7 +86,7 @@ leur utilisation réelle et les dépendances.
 
 ## 1.5 Projet Ansible existant
 
-Nom : `provision-serveur`.
+Nom actuel : `homelab-ansible` (anciennement `provision-serveur`).
 
 Le projet comporte environ 36 fichiers. L'architecture connue comprend
 notamment :
