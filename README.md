@@ -46,7 +46,7 @@ données applicatives.
 ## 🏗️ Architecture
 
 <p align="center">
-  <img src="docs/images/homelab-architecture.svg" alt="Schéma d’architecture du homelab : poste d’administration connecté au serveur Debian géré par Ansible, services système, applications Docker et connexions optionnelles vers Cloudflare Tunnel et une destination de sauvegarde." width="100%">
+  <img src="docs/images/homelab-architecture.svg" alt="Schéma du homelab : Internet passe par OPNsense et le switch LAN vers le poste Fedora et un Dell OptiPlex 3060 sous Debian 13, avec services système, applications Docker, Cloudflare Tunnel et sauvegardes." width="100%">
 </p>
 
 ### Frontières de responsabilité
@@ -54,7 +54,7 @@ données applicatives.
 - **Ansible** : Debian, SSH, firewall, Docker Engine, Cockpit/PCP et agents natifs.
 - **Coolify** : déploiements applicatifs, conteneurs gérés par Coolify, PostgreSQL,
   API NestJS et sauvegardes PostgreSQL.
-- **Hors périmètre** : configuration de la box/routeur, VLAN/switch, partitionnement
+- **Hors périmètre** : configuration d’OPNsense et du switch, VLAN, partitionnement
   du HDD et déploiement des applications.
 
 > **Réseau Docker :** les ports publiés par Docker peuvent contourner les règles

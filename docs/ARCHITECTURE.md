@@ -1,8 +1,8 @@
 # Architecture technique & choix de conception
 
-Serveur cible : **Dell OptiPlex 3060** (Intel Core i5-8500, 16 Go RAM, SSD NVMe 256 Go + HDD 1 To prévu pour données/sauvegardes), **Debian 13 (Trixie)** bare-metal.
+Serveur cible : **Dell OptiPlex 3060** (Intel Core i5-8500, 16 Go RAM, SSD NVMe 256 Go + HDD 1 To prévu pour données/sauvegardes), avec **Debian 13 (Trixie) installé directement sur le matériel**.
 
-Le contrôleur Ansible principal reste le **Mac Studio**. OPNsense (firewall) et le switch TP-Link sont hors scope de ce dépôt.
+Le contrôleur Ansible est le poste d’administration Fedora. **OPNsense assure le rôle de routeur et de firewall entre Internet et le LAN** ; le switch LAN relie les équipements du réseau. Leur configuration reste hors scope de ce dépôt.
 
 ---
 
@@ -10,7 +10,7 @@ Le contrôleur Ansible principal reste le **Mac Studio**. OPNsense (firewall) et
 
 | Composant | Exécution | Justification |
 | :--- | :--- | :--- |
-| Debian 13 | Bare-metal | I/O et RAM maximales pour les conteneurs |
+| Debian 13 | Installé directement sur le Dell OptiPlex 3060 | I/O et RAM maximales pour les conteneurs |
 | Docker Engine | `systemd` | Coolify, PostgreSQL, APIs NestJS |
 | cloudflared | `systemd` natif | Tunnel indépendant de Docker |
 | Beszel Agent | Binaire `systemd` | Métriques hôte + socket Docker |
@@ -23,7 +23,7 @@ Ansible n'installe **pas** Coolify, PostgreSQL, Redis ni NestJS en paquets Debia
 
 ## 2. Réseau
 
-État actuel : LAN `192.168.1.0/24` (Livebox). Les variables `admin_cidr` restent sur ce préfixe tant que la migration VLAN n'est pas faite.
+État actuel : le Dell OptiPlex et le poste d’administration sont sur le LAN derrière OPNsense. Le LAN utilise le préfixe `192.168.1.0/24` ; les variables `admin_cidr` restent sur ce préfixe tant que la migration VLAN n'est pas faite.
 
 Architecture future envisagée (documentation seule) :
 
@@ -31,9 +31,9 @@ Architecture future envisagée (documentation seule) :
 - VLAN 20 personnel : `10.0.20.0/24`
 - VLAN 1 management : `10.0.1.0/24`
 
-Le Dell n'est **pas** configuré comme routeur/firewall.
+Le Dell n'est **pas** configuré comme routeur/firewall : cette fonction est assurée par OPNsense.
 
-Publication Internet : **Cloudflare Tunnel uniquement** (pas de port forward Livebox/OPNsense pour les apps).
+Publication Internet : **Cloudflare Tunnel uniquement** (pas de redirection de ports sur OPNsense pour les applications).
 
 ---
 

@@ -38,29 +38,51 @@
   <text x="54" y="66" fill="#0F172A" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="27" font-weight="750">Architecture du homelab</text>
   <text x="55" y="94" fill="#64748B" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14">Une séparation claire entre administration, socle système et applications</text>
 
-  <g stroke="#64748B" stroke-width="2.5" stroke-linecap="round" marker-end="url(#arrow)">
-    <path d="M280 292H350"/>
-    <path d="M280 352H350"/>
-  </g>
-  <g fill="#475569" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11" font-weight="650">
-    <text x="286" y="278">SSH · Ansible</text>
-    <text x="286" y="375">Cockpit · LAN</text>
-  </g>
+  <rect x="78" y="130" width="172" height="36" rx="18" fill="#E0F2FE"/>
+  <circle cx="98" cy="148" r="5" fill="#0284C7"/>
+  <text x="113" y="152" fill="#075985" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" font-weight="750">Internet · WAN</text>
+  <path d="M164 166v35" stroke="#64748B" stroke-width="2.5" stroke-linecap="round" marker-end="url(#arrow)"/>
 
   <g filter="url(#shadow)">
-    <rect x="48" y="232" width="232" height="190" rx="22" fill="#FFFFFF"/>
-    <rect x="48.75" y="232.75" width="230.5" height="188.5" rx="21.25" stroke="#CBD5E1" stroke-width="1.5"/>
+    <rect x="48" y="208" width="232" height="78" rx="18" fill="#FFFFFF"/>
+    <rect x="48.75" y="208.75" width="230.5" height="76.5" rx="17.25" stroke="#A5B4FC" stroke-width="1.5"/>
   </g>
-  <rect x="70" y="254" width="46" height="46" rx="14" fill="#EFF6FF"/>
-  <g stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <rect x="81" y="264" width="24" height="17" rx="2.5"/>
-    <path d="M77 286h32m-19-5v5m6-5v5"/>
+  <rect x="66" y="224" width="44" height="44" rx="13" fill="#EEF2FF"/>
+  <path d="M88 231 102 236v11c0 10-6 16-14 20-8-4-14-10-14-20v-11l14-5Z" fill="#E0E7FF" stroke="#4F46E5" stroke-width="1.6" stroke-linejoin="round"/>
+  <path d="m82 247 4 4 8-9" stroke="#4F46E5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="122" y="242" fill="#0F172A" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="16" font-weight="750">OPNsense</text>
+  <text x="122" y="262" fill="#64748B" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11">Routeur · firewall du LAN</text>
+
+  <path d="M164 286v48" stroke="#64748B" stroke-width="2.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <text x="177" y="316" fill="#475569" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="10" font-weight="650">LAN filtré</text>
+
+  <g filter="url(#shadow)">
+    <rect x="78" y="342" width="172" height="68" rx="16" fill="#FFFFFF"/>
+    <rect x="78.75" y="342.75" width="170.5" height="66.5" rx="15.25" stroke="#CBD5E1" stroke-width="1.5"/>
   </g>
-  <text x="70" y="326" fill="#0F172A" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="18" font-weight="700">Poste d’administration</text>
-  <text x="70" y="350" fill="#64748B" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13">Fedora · Ansible Core</text>
-  <rect x="70" y="372" width="112" height="27" rx="13.5" fill="#ECFDF5"/>
-  <circle cx="85" cy="385.5" r="4" fill="#10B981"/>
-  <text x="96" y="390" fill="#047857" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11" font-weight="700">Accès LAN</text>
+  <rect x="94" y="355" width="40" height="40" rx="12" fill="#F1F5F9"/>
+  <path d="M104 364h20v4h-20zm0 9h20v4h-20zm3-7h.01m0 9h.01" stroke="#475569" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="145" y="372" fill="#0F172A" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="750">Switch LAN</text>
+  <text x="145" y="390" fill="#64748B" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="10">réseau local</text>
+
+  <path d="M164 410v40" stroke="#64748B" stroke-width="2" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <path d="M250 376h100" stroke="#64748B" stroke-width="2.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <text x="267" y="361" fill="#475569" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="10" font-weight="650">LAN</text>
+  <text x="267" y="393" fill="#475569" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="10">SSH · Cockpit</text>
+
+  <g filter="url(#shadow)">
+    <rect x="48" y="456" width="232" height="78" rx="18" fill="#FFFFFF"/>
+    <rect x="48.75" y="456.75" width="230.5" height="76.5" rx="17.25" stroke="#CBD5E1" stroke-width="1.5"/>
+  </g>
+  <rect x="66" y="473" width="42" height="42" rx="12" fill="#EFF6FF"/>
+  <g stroke="#2563EB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="76" y="481" width="22" height="16" rx="2.5"/>
+    <path d="M72 502h30m-18-5v5m6-5v5"/>
+  </g>
+  <text x="119" y="484" fill="#0F172A" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="750">Poste d’administration</text>
+  <text x="119" y="504" fill="#64748B" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11">Fedora · Ansible Core</text>
+  <rect x="119" y="512" width="89" height="17" rx="8.5" fill="#ECFDF5"/>
+  <text x="163.5" y="524" text-anchor="middle" fill="#047857" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="9" font-weight="700">CLIENT LAN</text>
 
   <g filter="url(#shadow)">
     <rect x="350" y="132" width="530" height="444" rx="26" fill="url(#server)"/>
@@ -72,10 +94,10 @@
     <rect x="385" y="178" width="24" height="8" rx="2"/>
     <path d="M390 168h.01m0 14h.01m5-14h9m-9 14h9"/>
   </g>
-  <text x="432" y="173" fill="#0F172A" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="20" font-weight="750">Serveur hôte</text>
-  <text x="432" y="194" fill="#475569" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13">Debian 13 · géré par Ansible</text>
+  <text x="432" y="173" fill="#0F172A" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="20" font-weight="750">Dell OptiPlex 3060</text>
+  <text x="432" y="194" fill="#475569" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13">Debian 13 · serveur physique · géré par Ansible</text>
   <rect x="757" y="164" width="98" height="25" rx="12.5" fill="#DBEAFE"/>
-  <text x="806" y="180" text-anchor="middle" fill="#1D4ED8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="10" font-weight="750" letter-spacing=".7">BARE-METAL</text>
+  <text x="806" y="180" text-anchor="middle" fill="#1D4ED8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="10" font-weight="750" letter-spacing=".7">HÔTE DEBIAN</text>
 
   <rect x="374" y="222" width="208" height="324" rx="18" fill="#FFFFFF"/>
   <rect x="374.75" y="222.75" width="206.5" height="322.5" rx="17.25" stroke="#D8E1ED" stroke-width="1.5"/>
@@ -161,9 +183,11 @@
   <rect x="948" y="480" width="177" height="27" rx="13.5" fill="#FFF7ED"/>
   <text x="1036.5" y="498" text-anchor="middle" fill="#C2410C" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="10" font-weight="700">DESTINATION À CONFIGURER</text>
 
-  <rect x="48" y="610" width="14" height="14" rx="4" fill="#2563EB"/>
-  <text x="72" y="622" fill="#475569" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11">Administré par Ansible</text>
-  <path d="M220 617h35" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-dasharray="5 5"/>
-  <text x="264" y="622" fill="#475569" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11">Flux optionnel ou à configurer</text>
+  <rect x="48" y="610" width="14" height="14" rx="4" fill="#4F46E5"/>
+  <text x="72" y="622" fill="#475569" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11">OPNsense protège l’accès au LAN</text>
+  <rect x="282" y="610" width="14" height="14" rx="4" fill="#2563EB"/>
+  <text x="306" y="622" fill="#475569" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11">Serveur géré par Ansible</text>
+  <path d="M494 617h35" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-dasharray="5 5"/>
+  <text x="538" y="622" fill="#475569" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11">Flux optionnel ou à configurer</text>
   <text x="1152" y="622" text-anchor="end" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="10">Vue logique · non à l’échelle</text>
 </svg>
