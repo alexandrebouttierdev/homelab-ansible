@@ -1,52 +1,44 @@
 # Guide post-provisionnement : Coolify, Beszel, PostgreSQL & NestJS
 
-Après `playbooks/site.yml`, le serveur Debian 13 est prêt pour la stack applicative.
+Après `playbooks/site.yml`, le serveur Debian 13 dispose de Coolify et du Hub
+Beszel ; l'installation initiale des deux est gérée par Ansible.
 
 ---
 
-## 1. Installation de Coolify
+## 1. Première connexion Coolify
 
-Coolify s'appuie sur Docker déjà installé par Ansible :
-
-```bash
-curl -fL https://cdn.coollabs.io/coolify/install.sh \
-  -o /tmp/coolify-install.sh
-sha256sum /tmp/coolify-install.sh
-```
-
-- Vérifier l'empreinte affichée avec le SHA-256 officiel publié par Coolify.
-- Relire le script avec `less /tmp/coolify-install.sh`, puis l'exécuter uniquement
-  si son contenu est attendu : `sudo bash /tmp/coolify-install.sh`.
-- Utiliser une version épinglée ou un checksum officiel dès que la procédure
-  Coolify le propose.
+Le rôle Ansible télécharge et exécute le script officiel de Coolify en root.
+L'installation est sautée si `/data/coolify/source/.env` existe déjà.
 
 - Accès initial LAN : `http://IP_LOCALE_SERVEUR:8000`
-- Exposition : sous-domaine Cloudflare Tunnel → `http://127.0.0.1:8000`
-- Protéger l'UI avec **Cloudflare Access**
-- Les APIs NestJS gardent leur propre authentification applicative
+- Les ports `8000`, `6001`, `6002`, `80` et `443` sont limités à `admin_cidr`.
+- Créer le compte administrateur initial dès le premier accès.
+- Pour l'exposition distante, configurer ensuite un sous-domaine Cloudflare
+  Tunnel vers `http://127.0.0.1:8000` et le protéger avec **Cloudflare Access**.
+- Les APIs NestJS gardent leur propre authentification applicative.
 
 ---
 
-## 2. Beszel (Hub + Agent)
+## 2. Beszel (Hub Ansible + Agent)
 
-1. Déployer le Hub (`henrygd/beszel`) dans Coolify (port `8090`, volume persistant).
-2. Exposer via Tunnel si besoin (`status.example.fr` → `http://127.0.0.1:8090`).
-3. **Add System** : nom, IP/`127.0.0.1`, port `45876` ; copier la clé publique.
-4. Si UFW est actif et que le Hub est dans Docker, renseigner `beszel_hub_cidr` avec le sous-réseau Docker réel (`docker network inspect …`).
-5. Vault :
+1. Ouvrir `http://IP_LOCALE_SERVEUR:8090` et créer le compte administrateur du Hub.
+2. Dans **Add System**, ajouter le serveur avec son IP et le port `45876`, puis copier la clé publique.
+3. Enregistrer `beszel_agent_key` dans Ansible Vault :
 
 ```bash
 ansible-vault edit inventory/group_vars/all/vault.yml
 # beszel_agent_key: "..."
 ```
 
-6. `beszel_agent_enabled: true` dans `inventory/group_vars/all/main.yml`, puis :
+4. Renseigner une version et son SHA-256 vérifié dans `main.yml`, puis activer `beszel_agent_enabled: true`. Le pare-feu autorise déjà le sous-réseau Docker par défaut (`172.17.0.0/16`) vers le port agent ; adapter `beszel_hub_cidr` si le bridge Docker utilise un autre sous-réseau.
+5. Appliquer le rôle :
 
 ```bash
 ansible-playbook playbooks/monitoring.yml --ask-become-pass --ask-vault-pass
 ```
 
 Compromis : l'utilisateur `beszel` est dans le groupe `docker` (équivalent root via le socket).
+Le Hub est limité au réseau d'administration par UFW et le filtrage DOCKER-USER. Ne pas le publier sur Internet sans tunnel et protection d'accès adaptés.
 
 ---
 

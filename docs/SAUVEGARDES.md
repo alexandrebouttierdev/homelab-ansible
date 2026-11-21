@@ -31,7 +31,7 @@ Documenter la dernière date de restauration testée.
 
 À sauvegarder régulièrement (manuel ou script hors de ce dépôt) :
 
-- Export / volume de données Coolify (souvent `/data/coolify` selon l'install).
+- Export / volume de données Coolify (`/data/coolify`).
 - Variables d'environnement des applications (hors secrets en clair dans Git).
 - Définitions Compose / Dockerfiles versionnés dans Git.
 
@@ -47,6 +47,7 @@ Sur le Dell, hors volumes Docker applicatifs :
 | --- | --- |
 | `/etc/cloudflared/tunnel.token` | Secret tunnel (permissions 0640) — **ne pas committer** |
 | `/etc/beszel/agent.env` | Clé agent Beszel — **ne pas committer** |
+| `/var/lib/beszel/hub` | Base et configuration persistantes du Hub Beszel |
 | `/etc/ssh/sshd_config.d/` | Durcissement SSH |
 | `/etc/docker/daemon.json` | Config démon Docker |
 | `/etc/ufw/` | Règles pare-feu locales |

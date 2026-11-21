@@ -24,8 +24,12 @@
       tags: [system, swap]
     - role: docker
       tags: [docker]
+    - role: coolify
+      tags: [coolify]
     - role: cockpit
       tags: [monitoring, cockpit]
+    - role: beszel_hub
+      tags: [monitoring, beszel]
     - role: beszel_agent
       tags: [monitoring, beszel]
     - role: cloudflared

@@ -51,6 +51,23 @@
   changed_when: false
   when: docker_install | bool
 
+- name: Vérifier si Coolify est installé
+  ansible.builtin.stat:
+    path: "{{ coolify_data_dir }}/source/.env"
+  register: verify_coolify_install
+  when: coolify_enabled | bool
+
+- name: Exiger l'installation de Coolify après un déploiement réel
+  ansible.builtin.assert:
+    that:
+      - verify_coolify_install.stat.exists
+    fail_msg: >-
+      Coolify a été activé mais son installation est absente.
+      Exécuter le playbook site.yml sans --check.
+  when:
+    - coolify_enabled | bool
+    - not ansible_check_mode
+
 - name: Vérifier que Cockpit est actif
   ansible.builtin.systemd_service:
     name: cockpit.socket
@@ -62,6 +79,24 @@
   when:
     - cockpit_install | bool
     - not ansible_check_mode or 'cockpit' in ansible_facts.packages
+
+- name: Vérifier si l'unité Beszel Hub existe
+  ansible.builtin.stat:
+    path: /etc/systemd/system/beszel-hub.service
+  register: verify_beszel_hub_unit
+  when: beszel_hub_enabled | bool
+
+- name: Vérifier que Beszel Hub est actif
+  ansible.builtin.systemd_service:
+    name: beszel-hub.service
+    state: started
+    enabled: true
+  check_mode: true
+  register: verify_beszel_hub
+  failed_when: verify_beszel_hub is changed or verify_beszel_hub is failed
+  when:
+    - beszel_hub_enabled | bool
+    - not ansible_check_mode or verify_beszel_hub_unit.stat.exists
 
 - name: Vérifier que pmlogger est actif
   ansible.builtin.systemd_service:
@@ -121,6 +156,10 @@
       - "PROVISIONNEMENT VALIDÉ : Debian prêt pour Coolify,"
       - "PostgreSQL et les APIs NestJS."
       - "UFW : {{ verify_ufw.stdout_lines | default([]) | first | default('n/a', true) }}"
+      - >-
+        Coolify : {{ 'http://' ~ (ansible_host | default(inventory_hostname)) ~ ':8000' if coolify_enabled | bool else 'désactivé' }}
+      - >-
+        Beszel Hub : {{ 'http://' ~ (ansible_host | default(inventory_hostname)) ~ ':' ~ (beszel_hub_port | string) if beszel_hub_enabled | bool else 'désactivé' }}
       - >-
         Cockpit : {{ 'https://' ~ (ansible_host | default(inventory_hostname)) ~ ':' ~ (cockpit_port | string) if cockpit_install | bool else 'désactivé' }}
       - "Prochaine étape : docs/DEPLOIEMENT-APPLICATIONS.md"

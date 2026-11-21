@@ -44,7 +44,8 @@ sudo journalctl -u <service> --since "1 hour ago"
 sudo systemctl restart <service>
 ```
 
-Ne pas modifier Coolify ou PostgreSQL avec ce dépôt.
+Le rôle Ansible gère uniquement l'installation initiale de Coolify ; ne pas
+modifier les services Coolify ni PostgreSQL avec ce dépôt.
 
 ## Problème Docker
 

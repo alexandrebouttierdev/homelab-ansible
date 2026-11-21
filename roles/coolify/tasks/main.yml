@@ -1,0 +1,86 @@
+---
+- name: Vérifier les prérequis matériels Coolify
+  ansible.builtin.assert:
+    that:
+      - ansible_processor_nproc | default(ansible_processor_vcpus | default(0)) | int >= 2
+      - ansible_memtotal_mb | int >= 2048
+      - >-
+        (ansible_mounts | selectattr('mount', 'equalto', '/') |
+        map(attribute='size_available') | first | default(0) | int) >=
+        (10 * 1024 * 1024 * 1024)
+    fail_msg: >-
+      Coolify requiert au moins 2 cœurs, 2 Gio de RAM et 10 Gio disponibles
+      sur /. Vérifier les ressources avant l'installation.
+  when: coolify_enabled | bool
+
+- name: Vérifier si Coolify est déjà installé
+  ansible.builtin.stat:
+    path: "{{ coolify_data_dir }}/source/.env"
+  register: coolify_env_file
+  when: coolify_enabled | bool
+
+- name: Signaler que l'installation Coolify est ignorée en mode check
+  ansible.builtin.debug:
+    msg: >-
+      Le script officiel Coolify ne sera pas exécuté en mode --check.
+      L'installation réelle s'effectuera avec le playbook sans --check.
+  when:
+    - coolify_enabled | bool
+    - ansible_check_mode
+    - not coolify_env_file.stat.exists
+
+- name: Télécharger le script officiel Coolify
+  ansible.builtin.get_url:
+    url: "{{ coolify_installer_url }}"
+    dest: /tmp/coolify-install.sh
+    owner: root
+    group: root
+    mode: "0700"
+  when:
+    - coolify_enabled | bool
+    - not ansible_check_mode
+    - not coolify_env_file.stat.exists
+
+- name: Installer Coolify avec le script officiel
+  ansible.builtin.command:
+    argv:
+      - /bin/bash
+      - /tmp/coolify-install.sh
+  environment:
+    DOCKER_ADDRESS_POOL_BASE: "{{ coolify_docker_address_pool_base }}"
+    DOCKER_ADDRESS_POOL_SIZE: "{{ coolify_docker_address_pool_size | string }}"
+  register: coolify_install_result
+  changed_when: true
+  timeout: 1800
+  when:
+    - coolify_enabled | bool
+    - not ansible_check_mode
+    - not coolify_env_file.stat.exists
+
+- name: Vérifier que le script a terminé l'installation Coolify
+  ansible.builtin.stat:
+    path: "{{ coolify_data_dir }}/source/.env"
+  register: coolify_install_marker
+  when:
+    - coolify_enabled | bool
+    - not ansible_check_mode
+
+- name: Échouer si le marqueur d'installation Coolify est absent
+  ansible.builtin.assert:
+    that:
+      - coolify_install_marker.stat.exists
+    fail_msg: >-
+      Le script officiel n'a pas créé {{ coolify_data_dir }}/source/.env.
+      Consulter la sortie de l'installation Coolify pour le diagnostic.
+  when:
+    - coolify_enabled | bool
+    - not ansible_check_mode
+
+- name: Nettoyer le script d'installation Coolify
+  ansible.builtin.file:
+    path: /tmp/coolify-install.sh
+    state: absent
+  when:
+    - coolify_enabled | bool
+    - not ansible_check_mode
+    - coolify_install_marker.stat.exists

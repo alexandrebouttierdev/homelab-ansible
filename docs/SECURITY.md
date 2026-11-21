@@ -2,8 +2,9 @@
 
 ## Périmètre
 
-Ansible gère SSH, AppArmor, UFW, Fail2ban, Docker, Cockpit, PCP, Beszel
-Agent et Cloudflare Tunnel. Coolify reste responsable de PostgreSQL,
+Ansible gère SSH, AppArmor, UFW, Fail2ban, Docker, l'installation initiale
+de Coolify, Cockpit, PCP, Beszel Agent et Cloudflare Tunnel. Coolify reste
+responsable de PostgreSQL,
 des applications, des conteneurs applicatifs et des sauvegardes.
 
 ## SSH
@@ -21,12 +22,14 @@ n’a pas été validée indépendamment.
 ## Pare-feu
 
 UFW doit rester la couche hôte. Les ports publiés par Docker peuvent
-contourner UFW et nécessitent une vérification avec `docker ps`,
-`docker network inspect` et `iptables -S DOCKER-USER`.
+contourner UFW ; `DOCKER-USER` limite les publications au réseau `admin_cidr`.
+Vérifier cette politique avec `docker ps`, `docker network inspect` et
+`iptables -S DOCKER-USER`.
 
-Ne pas publier PostgreSQL ou Redis sur Internet ou sur le LAN. Les
-communications nécessaires à Coolify doivent être vérifiées avant toute
-restriction Docker.
+Ne pas publier PostgreSQL ou Redis sur Internet ou sur le LAN. Les interfaces
+Coolify et Beszel sont accessibles uniquement depuis `admin_cidr`. Le script
+officiel Coolify s'exécute en root et modifie Docker ; le mode `--check` ne
+simule pas cette installation.
 
 ## Docker
 

@@ -39,7 +39,8 @@ sudo docker network ls
 sudo docker stats --no-stream
 ```
 
-Ne pas modifier Coolify ou les conteneurs applicatifs depuis ce dépôt.
+Le rôle Ansible gère uniquement l'installation initiale de Coolify. Ne pas
+modifier ses services ou conteneurs applicatifs depuis ce dépôt.
 
 ## Stockage
 
@@ -58,7 +59,7 @@ Ansible tant que les dépendances réelles n’ont pas été vérifiées.
 ## Supervision
 
 ```bash
-sudo systemctl status cockpit.socket pmcd pmlogger
+sudo systemctl status cockpit.socket pmcd pmlogger beszel-hub.service
 sudo systemctl status beszel-agent.service
 sudo systemctl status cloudflared-homelab.service
 ```

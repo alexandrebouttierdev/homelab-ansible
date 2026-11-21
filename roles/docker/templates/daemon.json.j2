@@ -6,5 +6,11 @@
   "log-opts": {
     "max-size": "{{ docker_log_max_size }}",
     "max-file": "{{ docker_log_max_file }}"
-  }
+  },
+  "default-address-pools": [
+    {
+      "base": "{{ coolify_docker_address_pool_base }}",
+      "size": {{ coolify_docker_address_pool_size | int }}
+    }
+  ]
 }

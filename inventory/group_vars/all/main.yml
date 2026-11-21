@@ -53,21 +53,41 @@ docker_userland_proxy: false
 # Le groupe docker ≈ root. Laisser false et utiliser sudo docker.
 docker_add_admin_user: false
 
-# Supervision hôte : Cockpit & PCP (historique via pmlogger)
+# Coolify auto-hébergé
+coolify_enabled: true
+coolify_installer_url: https://cdn.coollabs.io/coolify/install.sh
+coolify_data_dir: /data/coolify
+coolify_dashboard_port: 8000
+coolify_docker_address_pool_base: 172.20.0.0/14
+coolify_docker_address_pool_size: 24
+coolify_ports:
+  - 8000
+  - 6001
+  - 6002
+  - 80
+  - 443
+
+# Supervision hôte : Cockpit, PCP (historique via pmlogger) et Beszel
 cockpit_install: true
 pcp_pmlogger_enabled: true
 
-# Beszel Agent (binaire natif systemd)
-# Activer après avoir renseigné beszel_agent_key dans vault.yml
+# Beszel Hub + Agent
+beszel_hub_enabled: true
+beszel_hub_port: 8090
+beszel_hub_data_dir: /var/lib/beszel/hub
+beszel_hub_image: henrygd/beszel:latest
+# URL LAN affichée/configurée dans le Hub ; APP_URL peut être surchargée si besoin.
+beszel_hub_app_url: ""
+# Activer l'agent après création du compte Hub et génération de sa clé publique.
 beszel_agent_enabled: false
 beszel_agent_port: "45876"
 # Version et empreinte SHA-256 publiées officiellement de l'archive amd64.
 # Mettre à jour les deux valeurs ensemble après vérification indépendante.
 beszel_agent_version: ""
 beszel_agent_sha256: ""
-# Sous-réseau source du Hub Beszel si UFW est actif (réseau Docker du Hub).
-# Laisser vide pour ne pas ouvrir le port ; à déterminer via docker network inspect.
-beszel_hub_cidr: ""
+# Réseau source du Hub local sur le bridge Docker par défaut.
+# Adapter si le bridge Docker utilise un autre sous-réseau.
+beszel_hub_cidr: "172.17.0.0/16"
 beszel_agent_key: ""
 # Optionnels (connexion sortante agent -> Hub). Laisser vides en mode classique
 # où le Hub joint l'agent sur LISTEN.

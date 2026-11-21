@@ -26,9 +26,9 @@
 **Debian 13 (Trixie)**. Le projet vise une infrastructure simple à comprendre,
 reproductible et adaptée aux ressources limitées d’un serveur personnel.
 
-Ansible prépare l’hôte ; **Coolify garde la responsabilité des applications**,
-de PostgreSQL et de leurs sauvegardes. Les déploiements ne touchent pas aux
-données applicatives.
+Ansible prépare l’hôte et installe Coolify ; **Coolify garde la responsabilité
+des déploiements applicatifs**, de PostgreSQL et de leurs sauvegardes. Ansible
+ne touche pas aux données applicatives.
 
 > **Déploiement manuel uniquement.** GitHub Actions contrôle le dépôt, mais ne
 > se connecte jamais au serveur et ne déclenche aucun changement en production.
@@ -39,9 +39,9 @@ données applicatives.
 | --- | --- |
 | Socle système | Debian, paquets de base, fuseau horaire français (Europe/Paris), Chrony, journald, mises à jour de sécurité |
 | Accès et sécurité | compte administrateur, SSH, AppArmor, UFW, Fail2ban, paramètres noyau |
-| Conteneurs | Docker Engine, Compose, Buildx, rotation des logs, règles réseau |
-| Supervision | Cockpit (interface des mises à jour via PackageKit), PCP et pmlogger |
-| Optionnels | Beszel Agent et Cloudflare Tunnel, activés explicitement |
+| Conteneurs | Docker Engine, Compose, Buildx, Coolify, rotation des logs, règles réseau |
+| Supervision | Cockpit (interface des mises à jour via PackageKit), PCP et pmlogger, Hub Beszel |
+| Optionnels | Agent Beszel et Cloudflare Tunnel, activés explicitement |
 
 ## 🏗️ Architecture
 
@@ -51,15 +51,18 @@ données applicatives.
 
 ### Frontières de responsabilité
 
-- **Ansible** : Debian, SSH, firewall, Docker Engine, Cockpit/PCP et agents natifs.
+- **Ansible** : Debian, SSH, firewall, Docker Engine, installation initiale de
+  Coolify, Cockpit/PCP et agents natifs.
 - **Coolify** : déploiements applicatifs, conteneurs gérés par Coolify, PostgreSQL,
   API NestJS et sauvegardes PostgreSQL.
 - **Hors périmètre** : configuration d’OPNsense et du switch, VLAN, partitionnement
   du HDD et déploiement des applications.
 
 > **Réseau Docker :** les ports publiés par Docker peuvent contourner les règles
-> UFW habituelles. Inspecter les ports et les chaînes effectives avant toute
-> exposition. Ne pas publier PostgreSQL ou Redis sur Internet.
+> UFW habituelles. Le rôle Docker filtre ces ports avec `DOCKER-USER` et les
+> limite au réseau d’administration et aux réseaux Docker internes. Inspecter
+> les ports et les chaînes effectives avant toute exposition. Ne pas publier
+> PostgreSQL ou Redis sur Internet.
 
 ## 🚀 Démarrage rapide
 
@@ -138,6 +141,24 @@ ansible-playbook playbooks/site.yml --ask-become-pass
 ansible-playbook playbooks/verify.yml --ask-become-pass
 ```
 
+Le playbook exécute le script officiel de Coolify en root lors de sa première
+installation. Il configure le pool réseau Docker `172.20.0.0/14` (sous-réseaux
+`/24`) pour éviter le chevauchement avec les futurs VLAN `10.0.x.x`, puis
+installe Coolify sous `/data/coolify`. Le script n’est pas relancé si
+`/data/coolify/source/.env` existe déjà.
+
+Après le déploiement, ouvre `http://IP_LOCALE_SERVEUR:8000` depuis le réseau
+d’administration et crée le compte initial Coolify. Les ports `8000`, `6001`,
+`6002`, `80` et `443` sont autorisés uniquement depuis `admin_cidr` ; aucune
+redirection Internet n’est créée. Le script officiel est téléchargé depuis
+`cdn.coollabs.io` et exécuté avec les privilèges root : Ansible ne peut pas
+simuler cette installation en mode `--check`.
+
+Le Hub Beszel est installé par Ansible avec le site ; après le déploiement,
+ouvrez l’URL affichée dans le résumé Ansible (port `8090`) depuis le réseau
+d’administration et créez le compte administrateur. L’agent nécessite ensuite
+la clé affichée par le Hub.
+
 Lors d’une première prévisualisation, les règles UFW, le démarrage des
 services installés par le playbook et la configuration du swap peuvent ne pas
 être vérifiés si leurs paquets, services ou fichiers n’existent pas encore :
@@ -174,7 +195,9 @@ d’exemple.
 | `ufw_enabled` | `true` | Pare-feu local |
 | `fail2ban_enabled` | `true` | Protection des tentatives SSH |
 | `docker_add_admin_user` | `false` | Évite d’accorder à `alex` l’accès root via Docker |
-| `beszel_agent_enabled` | `false` | À activer après préparation du Hub et de la clé |
+| `coolify_enabled` | `true` | Installation initiale Coolify par Ansible |
+| `beszel_hub_enabled` | `true` | Hub Beszel installé par Ansible dès le provisionnement |
+| `beszel_agent_enabled` | `false` | À activer après création du compte Hub et ajout de la clé |
 | `cloudflared_enabled` | `false` | À activer après ajout du token au Vault |
 
 ## 🧪 Vérifications automatiques
@@ -218,7 +241,8 @@ pour Claude Code et Cursor sont dans [`CLAUDE.md`](CLAUDE.md) et
 
 ## ⚠️ Limites et précautions
 
-- Ce dépôt **ne gère pas** les applications et sauvegardes PostgreSQL de Coolify.
+- Ce dépôt installe Coolify mais **ne gère pas** ses applications ni les
+  sauvegardes PostgreSQL.
 - Il ne formate aucun disque et ne déplace aucune donnée persistante.
 - UFW seul ne suffit pas pour conclure qu’un port Docker est filtré.
 - Le groupe `docker` est pratiquement équivalent à root ; Beszel l’utilise

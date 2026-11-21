@@ -12,12 +12,15 @@ Le contrôleur Ansible est le poste d’administration Fedora. **OPNsense assure
 | :--- | :--- | :--- |
 | Debian 13 | Installé directement sur le Dell OptiPlex 3060 | I/O et RAM maximales pour les conteneurs |
 | Docker Engine | `systemd` | Coolify, PostgreSQL, APIs NestJS |
+| Coolify | Services Docker installés initialement par Ansible | Interface locale sur `8000`, déploiement des applications ; données dans `/data/coolify` |
 | cloudflared | `systemd` natif | Tunnel indépendant de Docker |
+| Beszel Hub | Conteneur Docker géré par une unité `systemd` Ansible | Supervision disponible avant Coolify, données persistantes dans `/var/lib/beszel/hub` |
 | Beszel Agent | Binaire `systemd` | Métriques hôte + socket Docker |
 | Cockpit + cockpit-packagekit + PCP (+ pmlogger) | `systemd` | Admin web, gestion des mises à jour via PackageKit et historique (sans paquet `cockpit-pcp`, absent de Debian 13) |
-| Coolify / PostgreSQL / NestJS | Conteneurs | Isolation et déploiements applicatifs |
+| PostgreSQL / NestJS | Conteneurs Coolify | Isolation et déploiements applicatifs |
 
-Ansible n'installe **pas** Coolify, PostgreSQL, Redis ni NestJS en paquets Debian.
+Ansible installe Coolify via son script officiel, mais n'installe pas PostgreSQL,
+Redis ni NestJS en paquets Debian et ne gère pas leurs conteneurs applicatifs.
 
 ---
 
@@ -49,8 +52,11 @@ Publication Internet : **Cloudflare Tunnel uniquement** (pas de redirection de p
 ## 4. Sécurité en profondeur
 
 1. **Pas d'exposition Internet directe** : cloudflared en sortie uniquement ; token via `--token-file` (absent de `ps`).
-2. **UFW** : `deny` entrant ; SSH `22` et Cockpit `9090` limités à `admin_cidr`.
-3. **Docker vs UFW** : les ports publiés par Docker peuvent contourner UFW. Ne pas publier `5432`/`6379`. Compléter avec OPNsense.
+2. **UFW** : `deny` entrant ; SSH `22`, Cockpit `9090`, Beszel `8090` et les
+   ports Coolify limités à `admin_cidr`.
+3. **Docker vs UFW** : les ports publiés par Docker peuvent contourner UFW ;
+   `DOCKER-USER` limite l'accès externe au réseau `admin_cidr`. Ne pas publier
+   `5432`/`6379`. Compléter avec OPNsense.
 4. **CrowdSec sur OPNsense** : analyse des journaux et composant de remédiation pour appliquer les décisions de blocage.
 5. **SSH** : hardening optionnel (`ssh_hardening_enabled`), clés only, `AllowUsers`, validation `sshd -t` avant restart.
 6. **Fail2ban** (backend systemd) + `ignoreip` pour le LAN d'admin.
@@ -66,9 +72,11 @@ Publication Internet : **Cloudflare Tunnel uniquement** (pas de redirection de p
 - rotation des logs (`10m` × 3) ;
 - `live-restore: true` ;
 - `userland-proxy: false` ;
+- pool réseau Docker `172.20.0.0/14` en `/24`, sans chevauchement avec les
+  VLAN futurs `10.0.x.x` ;
 - **aucune** écoute TCP du démon (`hosts` / `tcp://` interdits).
 
-Compatible Coolify : pas de politique qui casse le moteur ou Compose.
+Compatible avec le Coolify installé par Ansible.
 
 ## 6. Premier provisionnement
 

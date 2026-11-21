@@ -2,8 +2,8 @@
 # UFW filtre le trafic hôte. Les ports publiés par Docker (-p / ports:)
 # transitent souvent via les chaînes DOCKER* et peuvent contourner UFW.
 # Ne pas publier PostgreSQL/Redis ; s'appuyer aussi sur OPNsense et
-# Cloudflare Tunnel. Aucune règle DOCKER-USER n'est imposée ici afin de
-# ne pas casser Coolify sans validation manuelle.
+# Cloudflare Tunnel. Le rôle Docker applique séparément la politique
+# DOCKER-USER pour filtrer les ports publiés par les conteneurs.
 - name: Installer UFW
   ansible.builtin.apt:
     name: ufw
@@ -63,6 +63,31 @@
   when:
     - ufw_enabled | bool
     - cockpit_install | bool
+    - not ansible_check_mode or firewall_ufw_binary.stat.exists
+
+- name: Autoriser les ports Coolify depuis le réseau d'administration ({{ admin_cidr }})
+  community.general.ufw:
+    rule: allow
+    port: "{{ item | string }}"
+    proto: tcp
+    from_ip: "{{ admin_cidr }}"
+    comment: "provision-serveur-coolify-{{ item }}"
+  loop: "{{ coolify_ports }}"
+  when:
+    - ufw_enabled | bool
+    - coolify_enabled | bool
+    - not ansible_check_mode or firewall_ufw_binary.stat.exists
+
+- name: Autoriser Beszel Hub depuis le réseau d'administration ({{ admin_cidr }})
+  community.general.ufw:
+    rule: allow
+    port: "{{ beszel_hub_port | string }}"
+    proto: tcp
+    from_ip: "{{ admin_cidr }}"
+    comment: provision-serveur-beszel-hub
+  when:
+    - ufw_enabled | bool
+    - beszel_hub_enabled | bool
     - not ansible_check_mode or firewall_ufw_binary.stat.exists
 
 - name: Autoriser le Hub Beszel à joindre l'agent depuis son réseau Docker

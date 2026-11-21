@@ -1,0 +1,17 @@
+[Unit]
+Description=Beszel Hub
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+ExecStartPre=-/usr/bin/docker rm -f beszel-hub
+ExecStart=/usr/bin/docker run --rm --name beszel-hub -p {{ beszel_hub_port }}:8090 -v {{ beszel_hub_data_dir }}:/beszel_data -e APP_URL={{ beszel_hub_app_url | default('http://' ~ (ansible_host | default(inventory_hostname)) ~ ':' ~ (beszel_hub_port | string), true) }} {{ beszel_hub_image }}
+ExecStop=/usr/bin/docker stop --time 30 beszel-hub
+TimeoutStopSec=40
+
+[Install]
+WantedBy=multi-user.target
