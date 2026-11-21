@@ -2,7 +2,7 @@
 
 Serveur cible : **Dell OptiPlex 3060** (Intel Core i5-8500, 16 Go RAM, SSD NVMe 256 Go + HDD 1 To prévu pour données/sauvegardes), avec **Debian 13 (Trixie) installé directement sur le matériel**.
 
-Le contrôleur Ansible est le poste d’administration Fedora. **OPNsense assure le rôle de routeur et de firewall entre Internet et le LAN** ; le switch LAN relie les équipements du réseau. Leur configuration reste hors scope de ce dépôt.
+Le contrôleur Ansible est le poste d’administration Fedora. **OPNsense assure le rôle de routeur et de firewall entre Internet et le LAN, avec CrowdSec pour l’analyse des journaux et la remédiation** ; le switch TP-Link relie les équipements du réseau. Leur configuration reste hors scope de ce dépôt.
 
 ---
 
@@ -51,10 +51,11 @@ Publication Internet : **Cloudflare Tunnel uniquement** (pas de redirection de p
 1. **Pas d'exposition Internet directe** : cloudflared en sortie uniquement ; token via `--token-file` (absent de `ps`).
 2. **UFW** : `deny` entrant ; SSH `22` et Cockpit `9090` limités à `admin_cidr`.
 3. **Docker vs UFW** : les ports publiés par Docker peuvent contourner UFW. Ne pas publier `5432`/`6379`. Compléter avec OPNsense.
-4. **SSH** : hardening optionnel (`ssh_hardening_enabled`), clés only, `AllowUsers`, validation `sshd -t` avant restart.
-5. **Fail2ban** (backend systemd) + `ignoreip` pour le LAN d'admin.
-6. **AppArmor** actif ; comptes système `cloudflared` et `beszel`.
-7. **Groupe `docker`** : non accordé à `alex` par défaut. Beszel y est ajouté pour les métriques conteneurs (**compromis ≈ root**).
+4. **CrowdSec sur OPNsense** : analyse des journaux et composant de remédiation pour appliquer les décisions de blocage.
+5. **SSH** : hardening optionnel (`ssh_hardening_enabled`), clés only, `AllowUsers`, validation `sshd -t` avant restart.
+6. **Fail2ban** (backend systemd) + `ignoreip` pour le LAN d'admin.
+7. **AppArmor** actif ; comptes système `cloudflared` et `beszel`.
+8. **Groupe `docker`** : non accordé à `alex` par défaut. Beszel y est ajouté pour les métriques conteneurs (**compromis ≈ root**).
 
 ---
 

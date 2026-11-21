@@ -46,7 +46,7 @@ données applicatives.
 ## 🏗️ Architecture
 
 <p align="center">
-  <img src="docs/images/homelab-architecture.svg" alt="Schéma du homelab : Internet passe par OPNsense et le switch LAN vers le poste Fedora et un Dell OptiPlex 3060 sous Debian 13, avec services système, applications Docker, Cloudflare Tunnel et sauvegardes." width="100%">
+  <img src="docs/images/homelab-architecture.svg" alt="Schéma du homelab : Internet passe par OPNsense avec CrowdSec et le switch TP-Link vers le poste Fedora et un Dell OptiPlex 3060 sous Debian 13 (Intel Core i5-8500, 16 Go RAM, SSD NVMe 256 Go, HDD 1 To), avec Beszel, Docker, Coolify, PostgreSQL, Cloudflare Tunnel et sauvegardes." width="100%">
 </p>
 
 ### Frontières de responsabilité
