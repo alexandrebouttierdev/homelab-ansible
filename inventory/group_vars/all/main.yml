@@ -79,12 +79,12 @@ beszel_hub_image: henrygd/beszel:latest
 # URL LAN affichée/configurée dans le Hub ; APP_URL peut être surchargée si besoin.
 beszel_hub_app_url: ""
 # Activer l'agent après création du compte Hub et génération de sa clé publique.
-beszel_agent_enabled: false
+beszel_agent_enabled: true
 beszel_agent_port: "45876"
 # Version et empreinte SHA-256 publiées officiellement de l'archive amd64.
 # Mettre à jour les deux valeurs ensemble après vérification indépendante.
-beszel_agent_version: ""
-beszel_agent_sha256: ""
+beszel_agent_version: "0.21.2"
+beszel_agent_sha256: "0359a4c3b9d800ba865b2be4081c7f0df8ba29a8c5c0ac76e72f490f28496909"
 # Réseau source du Hub local sur le bridge Docker par défaut.
 # Adapter si le bridge Docker utilise un autre sous-réseau.
 beszel_hub_cidr: "172.17.0.0/16"

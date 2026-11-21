@@ -12,8 +12,8 @@
 - name: Vérifier la version épinglée et son empreinte Beszel
   ansible.builtin.assert:
     that:
-      - beszel_agent_version | regex_search('^[0-9]+\.[0-9]+\.[0-9]+$')
-      - beszel_agent_sha256 | regex_search('^[a-fA-F0-9]{64}$')
+      - beszel_agent_version is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+      - beszel_agent_sha256 is match('^[a-fA-F0-9]{64}$')
     fail_msg: >-
       Définir beszel_agent_version et beszel_agent_sha256 avec une release
       Beszel vérifiée avant d'activer l'agent.

@@ -37,6 +37,9 @@ ansible-vault edit inventory/group_vars/all/vault.yml
 ansible-playbook playbooks/monitoring.yml --ask-become-pass --ask-vault-pass
 ```
 
+Ce playbook applique aussi les règles UFW nécessaires pour que le Hub
+Beszel puisse joindre l'agent sur le port `45876`.
+
 Compromis : l'utilisateur `beszel` est dans le groupe `docker` (équivalent root via le socket).
 Le Hub est limité au réseau d'administration par UFW et le filtrage DOCKER-USER. Ne pas le publier sur Internet sans tunnel et protection d'accès adaptés.
 

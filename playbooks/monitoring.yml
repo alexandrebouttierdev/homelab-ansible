@@ -3,6 +3,8 @@
   hosts: homelab
   become: true
   roles:
+    - role: firewall
+      tags: [security, firewall]
     - role: cockpit
       tags: [monitoring, cockpit]
     - role: beszel_hub
