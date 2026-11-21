@@ -54,6 +54,13 @@ projet pour garder un contexte cohérent entre outils.
 
 Détails : [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
+## Vérifications automatiques
+
+GitHub Actions exécute `scripts/static-checks.sh` sur les branches `dev` et
+`main`, ainsi que sur les pull requests vers ces branches. La CI valide la
+présence de secrets évidents, le YAML, la syntaxe des playbooks, l’inventaire
+et `ansible-lint`. Elle ne se connecte pas au serveur et ne déploie rien.
+
 ---
 
 ## 2. Prérequis
