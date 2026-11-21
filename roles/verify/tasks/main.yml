@@ -1,4 +1,8 @@
 ---
+- name: Collecter les paquets installés pour les vérifications de services
+  ansible.builtin.package_facts:
+    manager: auto
+
 - name: Vérifier que le service SSH est actif
   ansible.builtin.systemd_service:
     name: ssh
@@ -7,6 +11,8 @@
   check_mode: true
   register: verify_ssh
   failed_when: verify_ssh is changed or verify_ssh is failed
+  when:
+    - not ansible_check_mode or 'openssh-server' in ansible_facts.packages
 
 - name: Vérifier que AppArmor est actif
   ansible.builtin.systemd_service:
@@ -16,7 +22,9 @@
   check_mode: true
   register: verify_apparmor
   failed_when: verify_apparmor is changed or verify_apparmor is failed
-  when: apparmor_enabled | bool
+  when:
+    - apparmor_enabled | bool
+    - not ansible_check_mode or 'apparmor' in ansible_facts.packages
 
 - name: Vérifier que Fail2ban est actif
   ansible.builtin.systemd_service:
@@ -26,7 +34,9 @@
   check_mode: true
   register: verify_fail2ban
   failed_when: verify_fail2ban is changed or verify_fail2ban is failed
-  when: fail2ban_enabled | bool
+  when:
+    - fail2ban_enabled | bool
+    - not ansible_check_mode or 'fail2ban' in ansible_facts.packages
 
 - name: Vérifier le statut UFW
   ansible.builtin.command:
@@ -49,7 +59,9 @@
   check_mode: true
   register: verify_cockpit
   failed_when: verify_cockpit is changed or verify_cockpit is failed
-  when: cockpit_install | bool
+  when:
+    - cockpit_install | bool
+    - not ansible_check_mode or 'cockpit' in ansible_facts.packages
 
 - name: Vérifier que pmlogger est actif
   ansible.builtin.systemd_service:
@@ -59,7 +71,10 @@
   check_mode: true
   register: verify_pmlogger
   failed_when: verify_pmlogger is changed or verify_pmlogger is failed
-  when: cockpit_install | bool and (pcp_pmlogger_enabled | default(true) | bool)
+  when:
+    - cockpit_install | bool
+    - pcp_pmlogger_enabled | default(true) | bool
+    - not ansible_check_mode or 'pcp' in ansible_facts.packages
 
 - name: Vérifier que l'agent Beszel est actif
   ansible.builtin.systemd_service:
@@ -69,7 +84,9 @@
   check_mode: true
   register: verify_beszel
   failed_when: verify_beszel is changed or verify_beszel is failed
-  when: beszel_agent_enabled | bool
+  when:
+    - not ansible_check_mode
+    - beszel_agent_enabled | bool
 
 - name: Vérifier que le tunnel Cloudflare est actif
   ansible.builtin.systemd_service:
@@ -79,7 +96,9 @@
   check_mode: true
   register: verify_cloudflared
   failed_when: verify_cloudflared is changed or verify_cloudflared is failed
-  when: cloudflared_enabled | bool
+  when:
+    - not ansible_check_mode
+    - cloudflared_enabled | bool
 
 - name: Vérifier les permissions du token Cloudflare
   ansible.builtin.stat:
@@ -101,7 +120,9 @@
       - "============================================================"
       - "PROVISIONNEMENT VALIDÉ : Debian prêt pour Coolify,"
       - "PostgreSQL et les APIs NestJS."
-      - "UFW : {{ verify_ufw.stdout_lines | default(['n/a']) | first }}"
+      - "UFW : {{ verify_ufw.stdout_lines | default([]) | first | default('n/a', true) }}"
+      - >-
+        Cockpit : {{ 'https://' ~ (ansible_host | default(inventory_hostname)) ~ ':' ~ (cockpit_port | string) if cockpit_install | bool else 'désactivé' }}
       - "Prochaine étape : docs/DEPLOIEMENT-APPLICATIONS.md"
       - "Sauvegardes : docs/SAUVEGARDES.md"
       - "============================================================"

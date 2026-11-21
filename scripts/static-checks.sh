@@ -36,6 +36,9 @@ for pb in playbooks/*.yml; do
   ansible-playbook "$pb" --syntax-check
 done
 
+echo "==> Vérification de la syntaxe des scripts shell"
+bash -n scripts/first-run.sh scripts/static-checks.sh
+
 echo "==> ansible-inventory --graph"
 ansible-inventory --graph
 

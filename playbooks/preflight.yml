@@ -9,6 +9,7 @@
         cmd: id -u
       register: preflight_root_uid
       changed_when: false
+      check_mode: false
 
     - name: Vérifier que le préflight s'exécute avec les privilèges root
       ansible.builtin.assert:
@@ -16,8 +17,8 @@
           - preflight_root_uid.stdout | trim == '0'
         fail_msg: >-
           L'élévation sudo a échoué. Si c'est le premier provisionnement,
-          exécuter playbooks/bootstrap.yml avec --ask-become-pass en saisissant
-          le mot de passe root, puis se reconnecter comme {{ admin_user }}.
+          exécuter scripts/first-run.sh et saisir le mot de passe root puis
+          celui de {{ admin_user }} lorsque demandé.
 
     - name: Vérifier que la cible est Debian 13
       ansible.builtin.assert:

@@ -10,6 +10,22 @@
     state: present
   when: ufw_enabled | bool
 
+- name: Vérifier si UFW est déjà disponible
+  ansible.builtin.stat:
+    path: /usr/sbin/ufw
+  register: firewall_ufw_binary
+  when: ufw_enabled | bool
+
+- name: Signaler les tâches UFW non simulables
+  ansible.builtin.debug:
+    msg: >-
+      UFW n'est pas encore installé : ses règles seront configurées lors de
+      l'application réelle du playbook, après l'installation du paquet.
+  when:
+    - ufw_enabled | bool
+    - ansible_check_mode
+    - not firewall_ufw_binary.stat.exists
+
 - name: Vérifier le backend firewall UFW
   ansible.builtin.command:
     cmd: ufw status verbose
@@ -33,7 +49,9 @@
     proto: tcp
     from_ip: "{{ admin_cidr }}"
     comment: provision-serveur-ssh
-  when: ufw_enabled | bool
+  when:
+    - ufw_enabled | bool
+    - not ansible_check_mode or firewall_ufw_binary.stat.exists
 
 - name: Autoriser Cockpit depuis le réseau d'administration ({{ admin_cidr }})
   community.general.ufw:
@@ -45,6 +63,7 @@
   when:
     - ufw_enabled | bool
     - cockpit_install | bool
+    - not ansible_check_mode or firewall_ufw_binary.stat.exists
 
 - name: Autoriser le Hub Beszel à joindre l'agent depuis son réseau Docker
   community.general.ufw:
@@ -57,18 +76,23 @@
     - ufw_enabled | bool
     - beszel_agent_enabled | bool
     - beszel_hub_cidr | length > 0
+    - not ansible_check_mode or firewall_ufw_binary.stat.exists
 
 - name: Définir la politique entrante par défaut (deny)
   community.general.ufw:
     direction: incoming
     policy: deny
-  when: ufw_enabled | bool
+  when:
+    - ufw_enabled | bool
+    - not ansible_check_mode or firewall_ufw_binary.stat.exists
 
 - name: Définir la politique sortante par défaut (allow)
   community.general.ufw:
     direction: outgoing
     policy: allow
-  when: ufw_enabled | bool
+  when:
+    - ufw_enabled | bool
+    - not ansible_check_mode or firewall_ufw_binary.stat.exists
 
 - name: Installer les dépendances pour filtrer les ports Docker
   ansible.builtin.apt:
@@ -84,4 +108,6 @@
 - name: Activer UFW
   community.general.ufw:
     state: enabled
-  when: ufw_enabled | bool
+  when:
+    - ufw_enabled | bool
+    - not ansible_check_mode or firewall_ufw_binary.stat.exists

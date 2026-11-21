@@ -60,7 +60,6 @@ ou sauvegardes par Ansible.
 - Pour une modification de privilèges, SSH, firewall ou Docker, ajoutez
   les validations ciblées nécessaires. Le mode `--check` n’est pas une
   preuve suffisante du bon fonctionnement sur l’hôte.
-- Le premier bootstrap utilise `playbooks/bootstrap.yml` avec
-  `--ask-become-pass` et le mot de passe root ; ensuite, les playbooks
-  utilisent sudo avec demande du mot de passe de `alex`.
-
+- Le premier provisionnement s'exécute avec `scripts/first-run.sh` : le
+  bootstrap demande le mot de passe root, réinitialise la connexion SSH, puis
+  le préflight demande le mot de passe sudo de `alex`.

@@ -27,11 +27,16 @@
   community.general.timezone:
     name: "{{ timezone }}"
 
+- name: Collecter les services présents
+  ansible.builtin.service_facts:
+
 - name: Activer et démarrer Chrony (synchronisation NTP)
   ansible.builtin.service:
     name: chrony
     state: started
     enabled: true
+  when:
+    - not ansible_check_mode or 'chrony.service' in ansible_facts.services or 'chrony' in ansible_facts.services
 
 - name: Configurer les mises à jour de sécurité automatiques (unattended-upgrades)
   ansible.builtin.copy:

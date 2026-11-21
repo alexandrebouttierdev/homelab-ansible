@@ -14,7 +14,7 @@ Le contrôleur Ansible est le poste d’administration Fedora. **OPNsense assure
 | Docker Engine | `systemd` | Coolify, PostgreSQL, APIs NestJS |
 | cloudflared | `systemd` natif | Tunnel indépendant de Docker |
 | Beszel Agent | Binaire `systemd` | Métriques hôte + socket Docker |
-| Cockpit + PCP (+ pmlogger) | `systemd` | Admin web à la demande + historique (sans paquet `cockpit-pcp`, absent de Debian 13) |
+| Cockpit + cockpit-packagekit + PCP (+ pmlogger) | `systemd` | Admin web, gestion des mises à jour via PackageKit et historique (sans paquet `cockpit-pcp`, absent de Debian 13) |
 | Coolify / PostgreSQL / NestJS | Conteneurs | Isolation et déploiements applicatifs |
 
 Ansible n'installe **pas** Coolify, PostgreSQL, Redis ni NestJS en paquets Debian.
@@ -73,11 +73,11 @@ Compatible Coolify : pas de politique qui casse le moteur ou Compose.
 ## 6. Premier provisionnement
 
 Une installation Debian vierge doit d’abord avoir SSH activé, un compte
-`alex` joignable par clé et un mot de passe root défini. Le playbook
-`playbooks/bootstrap.yml` utilise `su` et demande ce mot de passe à
-l’exécution pour installer `sudo` et ajouter `alex` au groupe
-administrateur. Les playbooks de provisionnement utilisent ensuite sudo
-avec demande du mot de passe d’`alex` via `--ask-become-pass`.
+`alex` joignable par clé et un mot de passe root défini. Le script
+`scripts/first-run.sh` lance `playbooks/bootstrap.yml`, qui utilise `su` et
+demande ce mot de passe à l’exécution pour installer `sudo` et ajouter `alex`
+au groupe administrateur. Il réinitialise ensuite la connexion SSH et lance
+le préflight, qui demande le mot de passe sudo d’`alex`.
 
 Ansible ne peut pas configurer le réseau, activer SSH ou créer son premier
 compte de connexion si Debian n’est pas encore accessible.

@@ -60,7 +60,9 @@ Le compte `alex` appartient au groupe `sudo`. La règle du projet exige une
 authentification par mot de passe ; ne pas ajouter de règle `NOPASSWD`.
 Ansible demande le mot de passe au lancement avec `--ask-become-pass`.
 
-Au premier provisionnement, `playbooks/bootstrap.yml` se connecte comme
-`alex`, utilise temporairement `su` avec le mot de passe root saisi à
-l’exécution, installe `sudo` et ajoute `alex` au groupe correspondant.
-Une session SSH existante et le mot de passe root initial restent nécessaires.
+Au premier provisionnement, `scripts/first-run.sh` lance
+`playbooks/bootstrap.yml`, qui se connecte comme `alex`, utilise temporairement
+`su` avec le mot de passe root saisi à l’exécution, installe `sudo` et ajoute
+`alex` au groupe correspondant. Le script réinitialise la connexion SSH avant
+de lancer le préflight, qui demande le mot de passe sudo d’`alex`. Une session
+SSH initiale et le mot de passe root restent nécessaires.

@@ -1,4 +1,20 @@
 ---
+- name: Collecter les paquets installés pour Docker
+  ansible.builtin.package_facts:
+    manager: auto
+  when: docker_install | bool
+
+- name: Signaler les tâches Docker non simulables
+  ansible.builtin.debug:
+    msg: >-
+      Docker CE n'est pas encore installé. Le mode --check ne peut pas simuler
+      l'ajout du dépôt APT puis l'installation des paquets et du service ;
+      ces étapes seront exécutées lors du lancement sans --check.
+  when:
+    - docker_install | bool
+    - ansible_check_mode
+    - "'docker-ce' not in ansible_facts.packages"
+
 - name: Installer les prérequis du dépôt Docker
   ansible.builtin.apt:
     name:
@@ -18,24 +34,76 @@
     state: absent
   when: docker_install | bool
 
-- name: Ajouter le dépôt officiel Docker (Debian {{ ansible_distribution_release }})
-  ansible.builtin.deb822_repository:
-    name: docker
-    types: deb
-    uris: https://download.docker.com/linux/debian
-    suites: "{{ ansible_distribution_release }}"
-    components:
-      - stable
-    architectures:
-      - "{{ docker_apt_arch }}"
-    signed_by: https://download.docker.com/linux/debian/gpg
-    state: present
-    enabled: true
+- name: Créer le répertoire des clés APT
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
   when: docker_install | bool
+
+- name: Télécharger la clé de signature officielle Docker
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/debian/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    owner: root
+    group: root
+    mode: "0644"
+  when: docker_install | bool
+
+- name: Configurer le dépôt officiel Docker (Debian {{ ansible_distribution_release }})
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/docker.sources
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      Types: deb
+      URIs: https://download.docker.com/linux/debian
+      Suites: {{ ansible_distribution_release }}
+      Components: stable
+      Architectures: {{ docker_apt_arch }}
+      Signed-By: /etc/apt/keyrings/docker.asc
+  when: docker_install | bool
+
+- name: Actualiser le cache APT après ajout du dépôt Docker
+  ansible.builtin.apt:
+    update_cache: true
+    update_cache_retries: 5
+    update_cache_retry_max_delay: 12
+  when: docker_install | bool
+
+- name: Vérifier que le dépôt Docker fournit docker-ce
+  ansible.builtin.command:
+    cmd: apt-cache policy docker-ce
+  environment:
+    LC_ALL: C
+  register: docker_apt_policy
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when:
+    - docker_install | bool
+    - not ansible_check_mode or 'docker-ce' in ansible_facts.packages
+
+- name: Arrêter si docker-ce est absent des sources APT
+  ansible.builtin.assert:
+    that:
+      - "'Candidate:' in docker_apt_policy.stdout"
+      - "'Candidate: (none)' not in docker_apt_policy.stdout"
+    fail_msg: >-
+      APT ne voit pas de version installable de docker-ce après la configuration
+      du dépôt {{ ansible_distribution_release }}/{{ docker_apt_arch }} et
+      l'actualisation de son index.
+      apt-cache policy stdout={{ docker_apt_policy.stdout | default('') }}
+      stderr={{ docker_apt_policy.stderr | default('') }}
+  when:
+    - docker_install | bool
+    - not ansible_check_mode or 'docker-ce' in ansible_facts.packages
 
 - name: Installer Docker Engine, Buildx et Compose
   ansible.builtin.apt:
-    update_cache: true
     name:
       - docker-ce
       - docker-ce-cli
@@ -43,7 +111,9 @@
       - docker-buildx-plugin
       - docker-compose-plugin
     state: present
-  when: docker_install | bool
+  when:
+    - docker_install | bool
+    - not ansible_check_mode or 'docker-ce' in ansible_facts.packages
 
 - name: Créer le répertoire /etc/docker
   ansible.builtin.file:
@@ -52,7 +122,9 @@
     owner: root
     group: root
     mode: "0755"
-  when: docker_install | bool
+  when:
+    - docker_install | bool
+    - not ansible_check_mode or 'docker-ce' in ansible_facts.packages
 
 - name: Configurer le démon Docker (logs, live-restore, pas d'écoute TCP)
   ansible.builtin.template:
@@ -61,14 +133,18 @@
     owner: root
     group: root
     mode: "0644"
-  when: docker_install | bool
+  when:
+    - docker_install | bool
+    - not ansible_check_mode or 'docker-ce' in ansible_facts.packages
   notify: Restart docker
 
 - name: Lire daemon.json pour contrôle anti-exposition TCP
   ansible.builtin.slurp:
     src: /etc/docker/daemon.json
   register: docker_daemon_slurp
-  when: docker_install | bool
+  when:
+    - docker_install | bool
+    - not ansible_check_mode or 'docker-ce' in ansible_facts.packages
 
 - name: Vérifier qu'aucune écoute TCP Docker n'est configurée
   ansible.builtin.assert:
@@ -80,7 +156,9 @@
       Retirer toute clé hosts / tcp:// avant de continuer.
   vars:
     docker_daemon_content: "{{ docker_daemon_slurp.content | b64decode }}"
-  when: docker_install | bool
+  when:
+    - docker_install | bool
+    - not ansible_check_mode or 'docker-ce' in ansible_facts.packages
 
 # Le groupe docker équivaut pratiquement à root. Désactivé par défaut.
 - name: Ajouter l'administrateur au groupe docker si explicitement demandé
@@ -88,14 +166,19 @@
     name: "{{ admin_user }}"
     groups: docker
     append: true
-  when: docker_install | bool and (docker_add_admin_user | bool)
+  when:
+    - docker_install | bool
+    - docker_add_admin_user | bool
+    - not ansible_check_mode or 'docker-ce' in ansible_facts.packages
 
 - name: Activer et démarrer le service Docker
   ansible.builtin.systemd_service:
     name: docker
     state: started
     enabled: true
-  when: docker_install | bool
+  when:
+    - docker_install | bool
+    - not ansible_check_mode or 'docker-ce' in ansible_facts.packages
 
 - name: Autoriser les connexions établies dans DOCKER-USER
   ansible.builtin.iptables:
@@ -109,6 +192,7 @@
   when:
     - ufw_enabled | bool
     - docker_install | bool
+    - not ansible_check_mode or 'docker-ce' in ansible_facts.packages
 
 - name: Autoriser les connexions locales dans DOCKER-USER
   ansible.builtin.iptables:
@@ -118,6 +202,7 @@
   when:
     - ufw_enabled | bool
     - docker_install | bool
+    - not ansible_check_mode or 'docker-ce' in ansible_facts.packages
 
 - name: Autoriser le réseau d'administration dans DOCKER-USER
   ansible.builtin.iptables:
@@ -127,6 +212,7 @@
   when:
     - ufw_enabled | bool
     - docker_install | bool
+    - not ansible_check_mode or 'docker-ce' in ansible_facts.packages
 
 - name: Autoriser les réseaux Docker internes dans DOCKER-USER
   ansible.builtin.iptables:
@@ -138,6 +224,7 @@
   when:
     - ufw_enabled | bool
     - docker_install | bool
+    - not ansible_check_mode or 'docker-ce' in ansible_facts.packages
 
 - name: Bloquer les autres connexions entrantes vers Docker
   ansible.builtin.iptables:
@@ -146,3 +233,4 @@
   when:
     - ufw_enabled | bool
     - docker_install | bool
+    - not ansible_check_mode or 'docker-ce' in ansible_facts.packages

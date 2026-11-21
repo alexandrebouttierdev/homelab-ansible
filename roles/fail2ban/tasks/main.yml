@@ -5,6 +5,10 @@
     state: present
   when: fail2ban_enabled | bool
 
+- name: Collecter les services présents pour Fail2ban
+  ansible.builtin.service_facts:
+  when: fail2ban_enabled | bool
+
 - name: Configurer la prison SSH (systemd backend)
   ansible.builtin.template:
     src: sshd.local.j2
@@ -20,4 +24,6 @@
     name: fail2ban
     state: started
     enabled: true
-  when: fail2ban_enabled | bool
+  when:
+    - fail2ban_enabled | bool
+    - not ansible_check_mode or 'fail2ban.service' in ansible_facts.services or 'fail2ban' in ansible_facts.services

@@ -20,13 +20,25 @@
     creates: "{{ swap_file_path }}"
   when: swap_enabled and not swap_file_stat.stat.exists
 
+- name: Signaler les tâches swap non simulables
+  ansible.builtin.debug:
+    msg: >-
+      {{ swap_file_path }} sera créé pendant l'application réelle du playbook ;
+      sa configuration et son activation ne peuvent pas être prévisualisées.
+  when:
+    - swap_enabled
+    - ansible_check_mode
+    - not swap_file_stat.stat.exists
+
 - name: Sécuriser les permissions du fichier swap
   ansible.builtin.file:
     path: "{{ swap_file_path }}"
     owner: root
     group: root
     mode: "0600"
-  when: swap_enabled
+  when:
+    - swap_enabled
+    - not ansible_check_mode or swap_file_stat.stat.exists
 
 - name: Vérifier le type de système de fichiers du fichier swap
   ansible.builtin.command:
@@ -34,25 +46,33 @@
   register: swap_fs_type
   changed_when: false
   failed_when: false
-  when: swap_enabled
+  when:
+    - swap_enabled
+    - not ansible_check_mode or swap_file_stat.stat.exists
 
 - name: Formater la zone swap uniquement si nécessaire
   ansible.builtin.command:
     cmd: "mkswap {{ swap_file_path }}"
-  when: swap_enabled and swap_fs_type.stdout | trim != 'swap'
+  when:
+    - swap_enabled
+    - not ansible_check_mode or swap_file_stat.stat.exists
+    - swap_fs_type.stdout | trim != 'swap'
 
 - name: Vérifier les zones swap actives
   ansible.builtin.command:
     cmd: swapon --noheadings --raw --show=NAME
   register: swap_active_swaps
   changed_when: false
-  when: swap_enabled
+  when:
+    - swap_enabled
+    - not ansible_check_mode or swap_file_stat.stat.exists
 
 - name: Activer le fichier swap uniquement s'il est inactif
   ansible.builtin.command:
     cmd: "swapon {{ swap_file_path }}"
   when:
     - swap_enabled
+    - not ansible_check_mode or swap_file_stat.stat.exists
     - swap_file_path not in swap_active_swaps.stdout_lines
 
 - name: Persister le swap dans /etc/fstab
@@ -62,4 +82,6 @@
     fstype: swap
     opts: sw
     state: present
-  when: swap_enabled
+  when:
+    - swap_enabled
+    - not ansible_check_mode or swap_file_stat.stat.exists

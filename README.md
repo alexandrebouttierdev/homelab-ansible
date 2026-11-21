@@ -37,10 +37,10 @@ données applicatives.
 
 | Domaine | Composants |
 | --- | --- |
-| Socle système | Debian, paquets de base, fuseau horaire, Chrony, journald, mises à jour de sécurité |
+| Socle système | Debian, paquets de base, fuseau horaire français (Europe/Paris), Chrony, journald, mises à jour de sécurité |
 | Accès et sécurité | compte administrateur, SSH, AppArmor, UFW, Fail2ban, paramètres noyau |
 | Conteneurs | Docker Engine, Compose, Buildx, rotation des logs, règles réseau |
-| Supervision | Cockpit, PCP et pmlogger |
+| Supervision | Cockpit (interface des mises à jour via PackageKit), PCP et pmlogger |
 | Optionnels | Beszel Agent et Cloudflare Tunnel, activés explicitement |
 
 ## 🏗️ Architecture
@@ -101,23 +101,24 @@ La clé publique locale est lue depuis
 
 ```bash
 ssh-keygen -t ed25519 -a 64 -f ~/.ssh/homelab_ed25519
-ssh-copy-id -i ~/.ssh/homelab_ed25519.pub alex@IP_SERVEUR
-ssh -i ~/.ssh/homelab_ed25519 alex@IP_SERVEUR
+ssh-copy-id -i ~/.ssh/homelab_ed25519.pub alex@192.168.1.24
+ssh -i ~/.ssh/homelab_ed25519 alex@192.168.1.24
 ```
 
-### 4. Bootstrap initial automatisé
+### 4. Bootstrap initial et préflight automatiques
 
 Sur une Debian fraîche, Ansible installe `sudo` et ajoute `alex` au groupe
-administrateur. Le mot de passe root est demandé à l’exécution par Ansible
-et n’est pas stocké dans le dépôt :
+administrateur, réinitialise la connexion SSH, puis lance le préflight.
+Lancer le script depuis le dépôt :
 
 ```bash
-ansible-playbook playbooks/bootstrap.yml --ask-become-pass
+./scripts/first-run.sh
 ```
 
-Ouvrir ensuite **une nouvelle session SSH** pour prendre en compte le groupe
-`sudo`. Il faudra connaître le mot de passe Linux d’`alex` pour les tâches
-administratives.
+Le script demande d’abord le mot de passe root pour le bootstrap, puis le mot
+de passe Linux d’`alex` pour le préflight. Ces mots de passe sont demandés à
+l’exécution et ne sont pas stockés dans le dépôt. La nouvelle connexion SSH
+est ouverte automatiquement entre les deux étapes.
 
 > Ansible ne peut pas installer Debian, activer SSH ou créer le premier accès
 > réseau : la cible doit déjà être joignable par SSH.
@@ -126,7 +127,6 @@ administratives.
 
 ```bash
 ansible homelab -m ping
-ansible-playbook playbooks/preflight.yml --ask-become-pass
 
 # Prévisualiser les changements
 ansible-playbook playbooks/site.yml --check --diff --ask-become-pass
@@ -137,6 +137,15 @@ ansible-playbook playbooks/site.yml --ask-become-pass
 # Vérifier les services après déploiement
 ansible-playbook playbooks/verify.yml --ask-become-pass
 ```
+
+Lors d’une première prévisualisation, les règles UFW, le démarrage des
+services installés par le playbook et la configuration du swap peuvent ne pas
+être vérifiés si leurs paquets, services ou fichiers n’existent pas encore :
+Ansible simule les créations sans produire les exécutables, unités systemd ou
+fichiers. Ces étapes seront effectuées pendant l’application réelle du playbook.
+Le rôle Docker installe aussi sa clé APT, écrit son dépôt officiel dans
+`/etc/apt/sources.list.d/docker.sources`, actualise l’index puis vérifie que
+`docker-ce` est disponible avant l’installation.
 
 Conserver une session SSH de secours. Avant d’activer ou de changer le
 durcissement SSH, tester l’authentification par clé dans une deuxième session.
