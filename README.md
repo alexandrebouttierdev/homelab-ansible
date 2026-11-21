@@ -45,18 +45,9 @@ données applicatives.
 
 ## 🏗️ Architecture
 
-```mermaid
-flowchart LR
-    Admin["Poste d'administration"] -->|"SSH / Ansible"| Host["Debian 13"]
-    Admin -->|"LAN uniquement"| Cockpit["Cockpit"]
-    Host --> Docker["Docker Engine"]
-    Docker --> Coolify["Coolify"]
-    Coolify --> Apps["API NestJS"]
-    Coolify --> PostgreSQL["PostgreSQL"]
-    Coolify -. "sauvegardes PostgreSQL" .-> Backup["Destination de sauvegarde à configurer"]
-    Host -. "tunnel sortant optionnel" .-> CF["Cloudflare Tunnel"]
-    Host --> Metrics["PCP / pmlogger"]
-```
+<p align="center">
+  <img src="docs/images/homelab-architecture.svg" alt="Schéma d’architecture du homelab : poste d’administration connecté au serveur Debian géré par Ansible, services système, applications Docker et connexions optionnelles vers Cloudflare Tunnel et une destination de sauvegarde." width="100%">
+</p>
 
 ### Frontières de responsabilité
 
