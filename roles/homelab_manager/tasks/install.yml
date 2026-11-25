@@ -91,9 +91,18 @@
     - "{{ homelab_manager_download_dir }}"
     - "{{ homelab_manager_releases_dir }}"
     - "{{ homelab_manager_config_dir }}"
+  register: homelab_manager_dirs_result
+
+# En --check, les répertoires ci-dessus ne sont que simulés : get_url et
+# template échoueraient alors sur une destination absente.
+- name: Détecter les répertoires Homelab Manager seulement simulés
+  ansible.builtin.set_fact:
+    homelab_manager_dirs_simulated: "{{ ansible_check_mode and homelab_manager_dirs_result is changed }}"
 
 - name: Télécharger et extraire la release Homelab Manager
-  when: not homelab_manager_release_stat.stat.exists
+  when:
+    - not homelab_manager_release_stat.stat.exists
+    - not homelab_manager_dirs_simulated
   block:
     - name: Télécharger l'archive Homelab Manager {{ homelab_manager_version }}
       ansible.builtin.get_url:
@@ -214,12 +223,16 @@
         group: root
         mode: "0644"
       register: homelab_manager_grype_download
+      when: not homelab_manager_dirs_simulated
 
     - name: Installer le paquet Grype
       ansible.builtin.apt:
         deb: "{{ homelab_manager_download_dir }}/{{ homelab_manager_grype_deb }}"
         state: present
-      when: not ansible_check_mode or not (homelab_manager_grype_download is changed)
+      when: >-
+        not ansible_check_mode or
+        (homelab_manager_grype_download is not skipped and
+         homelab_manager_grype_download is not changed)
 
 - name: Déployer la configuration de Homelab Manager
   ansible.builtin.template:
@@ -229,6 +242,7 @@
     group: root
     mode: "0644"
   notify: Restart homelab-manager
+  when: not homelab_manager_dirs_simulated
 
 - name: Créer le magasin des secrets chiffrés systemd
   ansible.builtin.file:
