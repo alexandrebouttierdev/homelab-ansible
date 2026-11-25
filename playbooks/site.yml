@@ -26,12 +26,8 @@
       tags: [docker]
     - role: coolify
       tags: [coolify]
-    - role: cockpit
-      tags: [monitoring, cockpit]
-    - role: beszel_hub
-      tags: [monitoring, beszel]
-    - role: beszel_agent
-      tags: [monitoring, beszel]
+    - role: homelab_manager
+      tags: [monitoring, homelab_manager]
     - role: cloudflared
       tags: [network, cloudflared]
     - role: verify

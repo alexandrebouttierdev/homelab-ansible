@@ -1,0 +1,30 @@
+# {{ ansible_managed }}
+# Configuration de Homelab Manager {{ homelab_manager_version }}
+# (modèle : deployments/config/manager.yaml de la release).
+http_address: ":{{ homelab_manager_port }}"
+database_path: "/var/lib/homelab-manager/homelab-manager.db"
+tls_cert_file: ""
+tls_key_file: ""
+docker_proxy_socket: "/run/homelab-docker-proxy/docker.sock"
+web_root: "{{ homelab_manager_release_dir }}/frontend/dist"
+system_collect_interval_seconds: 10
+docker_collect_interval_seconds: 15
+docker_discovery_interval_seconds: 30
+metrics_retention_days: {{ homelab_manager_metrics_retention_days }}
+# Redémarrer et éteindre la machine : exige aussi la règle polkit power.
+power_actions_enabled: {{ homelab_manager_power_actions_enabled | bool | lower }}
+# Actions sur les conteneurs : désactivées (le proxy Docker reste en lecture).
+docker_actions_enabled: false
+system_preferences_enabled: false
+# Vide : clé importée par systemd (ImportCredential=homelab-manager-secrets-key).
+secrets_key_file: ""
+# Passkeys : exigent un nom de domaine et HTTPS. Vide : WebAuthn désactivé.
+webauthn_rp_id: ""
+webauthn_rp_name: "Homelab Manager"
+webauthn_origins: []
+vulnerability_scan_interval_hours: 24
+vulnscan_inventory_path: "/var/lib/homelab-vulnscan/inventory/inventory.json"
+vulnscan_result_path: "/var/lib/homelab-vulnscan/result/result.json"
+systemd_manageable_units: []
+backup_jobs_dir: "/var/lib/homelab-backup/jobs"
+backup_runs_dir: "/var/lib/homelab-backup/runs"

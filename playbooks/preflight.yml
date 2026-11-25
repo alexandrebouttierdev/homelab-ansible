@@ -69,4 +69,4 @@
           - "OS : {{ ansible_distribution }} {{ ansible_distribution_version }} | Noyau : {{ ansible_kernel }}"
           - "CPU : {{ ansible_processor_nproc | default(ansible_processor_vcpus | default('inconnu')) }} vCPU | RAM : {{ ansible_memtotal_mb }} Mio"
           - "ssh_hardening_enabled={{ ssh_hardening_enabled }} | docker={{ docker_install }}"
-          - "beszel={{ beszel_agent_enabled }} | cloudflared={{ cloudflared_enabled }}"
+          - "homelab_manager={{ homelab_manager_enabled }} | cloudflared={{ cloudflared_enabled }}"

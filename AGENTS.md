@@ -7,8 +7,8 @@ Ce dépôt provisionne un serveur Debian 13 avec Ansible. Consultez
 de responsabilité, et `docs/SECURITY.md` pour les règles de sécurité.
 
 Ansible gère l’hôte Debian, SSH, le firewall, AppArmor, Fail2ban, Docker
-Engine, l’installation initiale de Coolify, Cockpit/PCP et, lorsqu’ils sont
-activés, Beszel Agent et Cloudflare Tunnel. Coolify gère les déploiements applicatifs, PostgreSQL,
+Engine, l’installation initiale de Coolify, Homelab Manager et, lorsqu’il est
+activé, Cloudflare Tunnel. Coolify gère les déploiements applicatifs, PostgreSQL,
 les API NestJS et leurs sauvegardes. Ne faites pas gérer ces applications
 ou sauvegardes par Ansible.
 
