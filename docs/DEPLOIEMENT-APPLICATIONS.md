@@ -1,7 +1,7 @@
-# Guide post-provisionnement : Coolify, Beszel, PostgreSQL & NestJS
+# Guide post-provisionnement : Coolify, Homelab Manager, PostgreSQL & NestJS
 
-Après `playbooks/site.yml`, le serveur Debian 13 dispose de Coolify et du Hub
-Beszel ; l'installation initiale des deux est gérée par Ansible.
+Après `playbooks/site.yml`, le serveur Debian 13 dispose de Coolify et de
+Homelab Manager ; l'installation initiale des deux est gérée par Ansible.
 
 ---
 
@@ -19,29 +19,40 @@ L'installation est sautée si `/data/coolify/source/.env` existe déjà.
 
 ---
 
-## 2. Beszel (Hub Ansible + Agent)
+## 2. Homelab Manager
 
-1. Ouvrir `http://IP_LOCALE_SERVEUR:8090` et créer le compte administrateur du Hub.
-2. Dans **Add System**, ajouter le serveur avec son IP et le port `45876`, puis copier la clé publique.
-3. Enregistrer `beszel_agent_key` dans Ansible Vault :
+1. Ouvrir `http://IP_LOCALE_SERVEUR:9090` depuis `admin_cidr` **juste après le
+   déploiement** : le compte initial est `admin` / `admin` et l'interface
+   impose aussitôt un nouveau mot de passe.
+2. Dans « Configuration », activer la double authentification (TOTP) et
+   conserver les codes de secours.
+3. « Sauvegardes » › « Configuration » : choisir le dépôt restic, les sources
+   et l'horaire, puis « Initialiser le dépôt ». Conserver hors ligne le mot de
+   passe affiché une seule fois.
+4. Le premier scan Grype démarre 2 minutes après le premier lancement ; il
+   télécharge une base d'environ 3,4 Go dans `/var/cache/homelab-vulnscan`.
+
+Pour réappliquer seulement ce rôle (et sa règle UFW) :
 
 ```bash
-ansible-vault edit inventory/group_vars/all/vault.yml
-# beszel_agent_key: "..."
+ansible-playbook playbooks/monitoring.yml --ask-become-pass
 ```
 
-4. Renseigner une version et son SHA-256 vérifié dans `main.yml`, puis activer `beszel_agent_enabled: true`. Le pare-feu autorise déjà le sous-réseau Docker par défaut (`172.17.0.0/16`) vers le port agent ; adapter `beszel_hub_cidr` si le bridge Docker utilise un autre sous-réseau.
-5. Appliquer le rôle :
+### Mise à jour de version
 
-```bash
-ansible-playbook playbooks/monitoring.yml --ask-become-pass --ask-vault-pass
-```
-
-Ce playbook applique aussi les règles UFW nécessaires pour que le Hub
-Beszel puisse joindre l'agent sur le port `45876`.
-
-Compromis : l'utilisateur `beszel` est dans le groupe `docker` (équivalent root via le socket).
-Le Hub est limité au réseau d'administration par UFW et le filtrage DOCKER-USER. Ne pas le publier sur Internet sans tunnel et protection d'accès adaptés.
+1. Sauvegarder la base :
+   `sudo -u homelab-manager sqlite3 /var/lib/homelab-manager/homelab-manager.db ".backup '/var/lib/homelab-manager/backup-$(date +%F).db'"`
+   (paquet `sqlite3`).
+2. Lire les notes de la release : elles signalent les unités ou règles
+   polkit modifiées.
+3. Mettre à jour `homelab_manager_version` et `homelab_manager_sha256`
+   (fichier `SHA256SUMS` de la release) dans `inventory/group_vars/all/main.yml`,
+   puis relancer `playbooks/monitoring.yml`. Les migrations SQLite
+   s'appliquent au démarrage.
+4. Retour arrière : remettre l'ancienne version et son empreinte, relancer le
+   playbook, et restaurer la base sauvegardée si une migration l'a modifiée.
+   Les anciennes releases restent dans `/opt/homelab-manager/releases/` et
+   peuvent être supprimées à la main.
 
 ---
 

@@ -46,8 +46,8 @@ Sur le Dell, hors volumes Docker applicatifs :
 | Chemin | Intérêt |
 | --- | --- |
 | `/etc/cloudflared/tunnel.token` | Secret tunnel (permissions 0640) — **ne pas committer** |
-| `/etc/beszel/agent.env` | Clé agent Beszel — **ne pas committer** |
-| `/var/lib/beszel/hub` | Base et configuration persistantes du Hub Beszel |
+| `/var/lib/homelab-manager/homelab-manager.db` | Base SQLite de Homelab Manager (sauvegarde à chaud : `sudo -u homelab-manager sqlite3 … ".backup '…'"`) |
+| `/etc/homelab-manager/manager.yaml` | Configuration Homelab Manager (générée par Ansible) |
 | `/etc/ssh/sshd_config.d/` | Durcissement SSH |
 | `/etc/docker/daemon.json` | Config démon Docker |
 | `/etc/ufw/` | Règles pare-feu locales |
@@ -80,5 +80,19 @@ rsync -aH --delete alex@IP_SERVEUR:/chemin/sauvegardes/ ~/Backups/homelab/
 - [ ] Dumps PostgreSQL Coolify OK (logs Coolify)
 - [ ] Restauration testée au moins une fois par trimestre
 - [ ] Vault Ansible sauvegardé (copie chiffrée hors machine)
-- [ ] Token Cloudflare et clé Beszel récupérables si le SSD tombe
+- [ ] Token Cloudflare récupérable si le SSD tombe
+- [ ] Mots de passe des dépôts restic de Homelab Manager conservés hors ligne
 - [ ] Aucun port DB/Redis publié (`docker ps`)
+
+## 6. Sauvegardes hôte avec Homelab Manager
+
+Ansible installe le module Sauvegardes de Homelab Manager (`restic`, unité
+`homelab-backup@.service`, règle polkit) mais ne configure aucun dépôt ni
+aucune source : tout se règle dans l'interface (« Sauvegardes » ›
+« Configuration »). Ce module sert à l'hôte (`/etc`, configuration, fichiers
+hors Coolify) ; les dumps PostgreSQL restent gérés par Coolify.
+
+- Dépôt local : seulement sous `/mnt`, `/media`, `/srv` ou `/var/backups`
+  (par exemple le HDD une fois monté manuellement).
+- Le mot de passe du dépôt est affiché **une seule fois** : le conserver hors
+  ligne, sans lui aucune restauration n'est possible.

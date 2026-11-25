@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/images/homelab-banner.svg" alt="Bannière homelab-ansible avec les logos Debian, Ansible, Docker, NestJS, Cockpit et Beszel, et un résumé des composants système, sécurité, conteneurs, supervision, réseau et applications." width="100%">
+  <img src="docs/images/homelab-banner.svg" alt="Bannière homelab-ansible avec les logos Debian, Ansible, Docker, NestJS et Homelab Manager, et un résumé des composants système, sécurité, conteneurs, supervision, réseau et applications." width="100%">
   <br>
   <a href="https://github.com/alexandrebouttierdev/homelab-ansible/actions/workflows/ansible-checks.yml">
     <img src="https://github.com/alexandrebouttierdev/homelab-ansible/actions/workflows/ansible-checks.yml/badge.svg?branch=dev" alt="Ansible checks">
@@ -40,19 +40,19 @@ ne touche pas aux données applicatives.
 | Socle système | Debian, paquets de base, fuseau horaire français (Europe/Paris), Chrony, journald, mises à jour de sécurité |
 | Accès et sécurité | compte administrateur, SSH, AppArmor, UFW, Fail2ban, paramètres noyau |
 | Conteneurs | Docker Engine, Compose, Buildx, Coolify, rotation des logs, règles réseau |
-| Supervision | Cockpit (interface des mises à jour via PackageKit), PCP et pmlogger, Hub Beszel |
-| Optionnels | Agent Beszel et Cloudflare Tunnel, activés explicitement |
+| Supervision | [Homelab Manager](https://github.com/alexandrebouttierdev/homelab-manager) : métriques, journaux, alertes, sauvegardes restic, scans Grype |
+| Optionnels | Cloudflare Tunnel, activé explicitement |
 
 ## 🏗️ Architecture
 
 <p align="center">
-  <img src="docs/images/homelab-architecture.svg" alt="Schéma du homelab : Internet passe par OPNsense avec CrowdSec et le switch TP-Link vers le poste Fedora et un Dell OptiPlex 3060 sous Debian 13 (Intel Core i5-8500, 16 Go RAM, SSD NVMe 256 Go, HDD 1 To), avec Beszel, Docker, Coolify, PostgreSQL, Cloudflare Tunnel et sauvegardes." width="100%">
+  <img src="docs/images/homelab-architecture.svg" alt="Schéma du homelab : Internet passe par OPNsense avec CrowdSec et le switch TP-Link vers le poste Fedora et un Dell OptiPlex 3060 sous Debian 13 (Intel Core i5-8500, 16 Go RAM, SSD NVMe 256 Go, HDD 1 To), avec Homelab Manager, Docker, Coolify, PostgreSQL, Cloudflare Tunnel et sauvegardes." width="100%">
 </p>
 
 ### Frontières de responsabilité
 
 - **Ansible** : Debian, SSH, firewall, Docker Engine, installation initiale de
-  Coolify, Cockpit/PCP et agents natifs.
+  Coolify, Homelab Manager et services natifs.
 - **Coolify** : déploiements applicatifs, conteneurs gérés par Coolify, PostgreSQL,
   API NestJS et sauvegardes PostgreSQL.
 - **Hors périmètre** : configuration d’OPNsense et du switch, VLAN, partitionnement
@@ -154,10 +154,11 @@ redirection Internet n’est créée. Le script officiel est téléchargé depui
 `cdn.coollabs.io` et exécuté avec les privilèges root : Ansible ne peut pas
 simuler cette installation en mode `--check`.
 
-Le Hub Beszel est installé par Ansible avec le site ; après le déploiement,
-ouvrez l’URL affichée dans le résumé Ansible (port `8090`) depuis le réseau
-d’administration et créez le compte administrateur. L’agent nécessite ensuite
-la clé affichée par le Hub.
+Homelab Manager est installé par Ansible avec le site (port `9090`, le `8080`
+amont étant pris par le proxy Coolify). Dès le déploiement, ouvrez
+`http://IP_LOCALE_SERVEUR:9090` depuis le réseau d’administration : le compte
+initial est `admin` / `admin` et l’interface impose aussitôt un nouveau mot de
+passe. Voir [Déploiement applicatif](docs/DEPLOIEMENT-APPLICATIONS.md).
 
 Lors d’une première prévisualisation, les règles UFW, le démarrage des
 services installés par le playbook et la configuration du swap peuvent ne pas
@@ -196,8 +197,8 @@ d’exemple.
 | `fail2ban_enabled` | `true` | Protection des tentatives SSH |
 | `docker_add_admin_user` | `false` | Évite d’accorder à `alex` l’accès root via Docker |
 | `coolify_enabled` | `true` | Installation initiale Coolify par Ansible |
-| `beszel_hub_enabled` | `true` | Hub Beszel installé par Ansible dès le provisionnement |
-| `beszel_agent_enabled` | `false` | À activer après création du compte Hub et ajout de la clé |
+| `homelab_manager_enabled` | `true` | Homelab Manager installé depuis une release épinglée (SHA-256) |
+| `homelab_manager_*_enabled` | `true` | Modules sauvegardes, vulnérabilités, nettoyage du journal, alimentation |
 | `cloudflared_enabled` | `false` | À activer après ajout du token au Vault |
 
 ## 🧪 Vérifications automatiques
@@ -225,7 +226,7 @@ Pour lancer les mêmes contrôles localement :
 | --- | --- |
 | [Architecture](docs/ARCHITECTURE.md) | Composants, réseau et séparation Ansible/Coolify |
 | [Sécurité](docs/SECURITY.md) | SSH, firewall, Docker, AppArmor, secrets |
-| [Déploiement applicatif](docs/DEPLOIEMENT-APPLICATIONS.md) | Coolify, Beszel et Cloudflare |
+| [Déploiement applicatif](docs/DEPLOIEMENT-APPLICATIONS.md) | Coolify, Homelab Manager et Cloudflare |
 | [Sauvegardes](docs/SAUVEGARDES.md) | Sauvegardes PostgreSQL et données Coolify |
 | [Maintenance](docs/MAINTENANCE.md) | Mises à jour, commandes et idempotence |
 | [Exploitation](docs/OPERATIONS.md) | Vérifications système et services |
@@ -245,8 +246,9 @@ pour Claude Code et Cursor sont dans [`CLAUDE.md`](CLAUDE.md) et
   sauvegardes PostgreSQL.
 - Il ne formate aucun disque et ne déplace aucune donnée persistante.
 - UFW seul ne suffit pas pour conclure qu’un port Docker est filtré.
-- Le groupe `docker` est pratiquement équivalent à root ; Beszel l’utilise
-  uniquement si l’agent est activé, avec ce compromis.
+- Le groupe `docker` est pratiquement équivalent à root ; seul le proxy
+  restreint de Homelab Manager (`homelab-docker-proxy`, routes GET en liste
+  blanche) en est membre.
 - Toute exposition d’un service via Cloudflare doit être explicitement définie
   et protégée, par exemple avec Cloudflare Access pour une interface d’administration.
 - Vérifier l’inventaire, les variables et l’état réel du serveur avant chaque

@@ -1,0 +1,20 @@
+---
+# En mode --check sur un hôte neuf, les unités n'existent pas encore :
+# les redémarrages ne sont alors pas simulables.
+- name: Reload systemd for Homelab Manager
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+- name: Restart homelab-docker-proxy
+  ansible.builtin.systemd_service:
+    name: homelab-docker-proxy.service
+    state: restarted
+    daemon_reload: true
+  when: not ansible_check_mode or homelab_manager_unit_stat.stat.exists
+
+- name: Restart homelab-manager
+  ansible.builtin.systemd_service:
+    name: homelab-manager.service
+    state: restarted
+    daemon_reload: true
+  when: not ansible_check_mode or homelab_manager_unit_stat.stat.exists

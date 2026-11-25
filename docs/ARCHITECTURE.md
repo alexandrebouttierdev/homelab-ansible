@@ -14,9 +14,9 @@ Le contrôleur Ansible est le poste d’administration Fedora. **OPNsense assure
 | Docker Engine | `systemd` | Coolify, PostgreSQL, APIs NestJS |
 | Coolify | Services Docker installés initialement par Ansible | Interface locale sur `8000`, déploiement des applications ; données dans `/data/coolify` |
 | cloudflared | `systemd` natif | Tunnel indépendant de Docker |
-| Beszel Hub | Conteneur Docker géré par une unité `systemd` Ansible | Supervision disponible avant Coolify, données persistantes dans `/var/lib/beszel/hub` |
-| Beszel Agent | Binaire `systemd` | Métriques hôte + socket Docker |
-| Cockpit + cockpit-packagekit + PCP (+ pmlogger) | `systemd` | Admin web, gestion des mises à jour via PackageKit et historique (sans paquet `cockpit-pcp`, absent de Debian 13) |
+| Homelab Manager | Binaires Go natifs `systemd`, compte `homelab-manager` non root | Supervision et administration de l'hôte indépendantes de Docker et de Coolify ; base SQLite dans `/var/lib/homelab-manager` |
+| homelab-docker-proxy | Unité `systemd` activée par socket | Seul accès au socket Docker, en lecture (routes GET en liste blanche) |
+| restic / Grype | Unités `systemd` lancées à la demande via polkit | Sauvegardes hôte et scans de vulnérabilités des paquets, hors du Manager |
 | PostgreSQL / NestJS | Conteneurs Coolify | Isolation et déploiements applicatifs |
 
 Ansible installe Coolify via son script officiel, mais n'installe pas PostgreSQL,
@@ -52,7 +52,7 @@ Publication Internet : **Cloudflare Tunnel uniquement** (pas de redirection de p
 ## 4. Sécurité en profondeur
 
 1. **Pas d'exposition Internet directe** : cloudflared en sortie uniquement ; token via `--token-file` (absent de `ps`).
-2. **UFW** : `deny` entrant ; SSH `22`, Cockpit `9090`, Beszel `8090` et les
+2. **UFW** : `deny` entrant ; SSH `22`, Homelab Manager `9090` et les
    ports Coolify limités à `admin_cidr`.
 3. **Docker vs UFW** : les ports publiés par Docker peuvent contourner UFW ;
    `DOCKER-USER` limite l'accès externe au réseau `admin_cidr`. Ne pas publier
@@ -60,8 +60,10 @@ Publication Internet : **Cloudflare Tunnel uniquement** (pas de redirection de p
 4. **CrowdSec sur OPNsense** : analyse des journaux et composant de remédiation pour appliquer les décisions de blocage.
 5. **SSH** : hardening optionnel (`ssh_hardening_enabled`), clés only, `AllowUsers`, validation `sshd -t` avant restart.
 6. **Fail2ban** (backend systemd) + `ignoreip` pour le LAN d'admin.
-7. **AppArmor** actif ; comptes système `cloudflared` et `beszel`.
-8. **Groupe `docker`** : non accordé à `alex` par défaut. Beszel y est ajouté pour les métriques conteneurs (**compromis ≈ root**).
+7. **AppArmor** actif ; comptes système `cloudflared`, `homelab-manager`,
+   `homelab-docker-proxy` et `homelab-vulnscan`.
+8. **Groupe `docker`** : non accordé à `alex` par défaut. Seul `homelab-docker-proxy` y est ajouté (**compromis ≈ root**, limité par la liste blanche de routes du proxy).
+9. **polkit** : chaque module de Homelab Manager installe une règle qui n'autorise que le compte `homelab-manager`, sur ses seules unités ou actions.
 
 ---
 
@@ -89,3 +91,25 @@ le préflight, qui demande le mot de passe sudo d’`alex`.
 
 Ansible ne peut pas configurer le réseau, activer SSH ou créer son premier
 compte de connexion si Debian n’est pas encore accessible.
+
+## 7. Supervision : Homelab Manager
+
+Décision : la supervision de l'hôte est confiée à
+[Homelab Manager](https://github.com/alexandrebouttierdev/homelab-manager),
+qui regroupe métriques hôte et Docker, journaux systemd, alertes, sauvegardes
+restic et scans Grype dans un seul service natif, sans conteneur ni terminal web.
+
+- Installation par le rôle `homelab_manager` depuis une release GitHub dont la
+  version et le SHA-256 sont épinglés dans `inventory/group_vars/all/main.yml`.
+  Les fichiers de la release sont gardés sous `/opt/homelab-manager/releases/` ;
+  l'interface est servie depuis le répertoire de la version active.
+- Écoute sur `9090` (le `8080` amont est le tableau de bord Traefik de Coolify),
+  ouvert dans UFW pour `admin_cidr` seulement, en HTTP.
+- Clé du coffre de secrets générée sur le serveur et chiffrée par
+  `systemd-creds` (`/etc/credstore.encrypted/homelab-manager-secrets-key`),
+  jamais régénérée par Ansible.
+- Modules activés : sauvegardes restic, vulnérabilités (Grype `.deb` épinglé),
+  nettoyage du journal, redémarrage/extinction. Les actions sur les conteneurs,
+  services et préférences système restent désactivées.
+- Les sauvegardes restic du Manager couvrent l'hôte ; les sauvegardes
+  PostgreSQL restent gérées par Coolify.

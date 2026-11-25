@@ -1,13 +1,9 @@
 ---
-- name: Installation des outils de supervision (Cockpit, PCP, Beszel Hub & Agent)
+- name: Installation de la supervision hôte (Homelab Manager)
   hosts: homelab
   become: true
   roles:
     - role: firewall
       tags: [security, firewall]
-    - role: cockpit
-      tags: [monitoring, cockpit]
-    - role: beszel_hub
-      tags: [monitoring, beszel]
-    - role: beszel_agent
-      tags: [monitoring, beszel]
+    - role: homelab_manager
+      tags: [monitoring, homelab_manager]

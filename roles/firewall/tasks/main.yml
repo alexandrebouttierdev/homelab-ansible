@@ -53,16 +53,16 @@
     - ufw_enabled | bool
     - not ansible_check_mode or firewall_ufw_binary.stat.exists
 
-- name: Autoriser Cockpit depuis le réseau d'administration ({{ admin_cidr }})
+- name: Autoriser Homelab Manager depuis le réseau d'administration ({{ admin_cidr }})
   community.general.ufw:
     rule: allow
-    port: "{{ cockpit_port | string }}"
+    port: "{{ homelab_manager_port | string }}"
     proto: tcp
     from_ip: "{{ admin_cidr }}"
-    comment: provision-serveur-cockpit
+    comment: provision-serveur-homelab-manager
   when:
     - ufw_enabled | bool
-    - cockpit_install | bool
+    - homelab_manager_enabled | bool
     - not ansible_check_mode or firewall_ufw_binary.stat.exists
 
 - name: Autoriser les ports Coolify depuis le réseau d'administration ({{ admin_cidr }})
@@ -76,31 +76,6 @@
   when:
     - ufw_enabled | bool
     - coolify_enabled | bool
-    - not ansible_check_mode or firewall_ufw_binary.stat.exists
-
-- name: Autoriser Beszel Hub depuis le réseau d'administration ({{ admin_cidr }})
-  community.general.ufw:
-    rule: allow
-    port: "{{ beszel_hub_port | string }}"
-    proto: tcp
-    from_ip: "{{ admin_cidr }}"
-    comment: provision-serveur-beszel-hub
-  when:
-    - ufw_enabled | bool
-    - beszel_hub_enabled | bool
-    - not ansible_check_mode or firewall_ufw_binary.stat.exists
-
-- name: Autoriser le Hub Beszel à joindre l'agent depuis son réseau Docker
-  community.general.ufw:
-    rule: allow
-    port: "{{ beszel_agent_port | string }}"
-    proto: tcp
-    from_ip: "{{ beszel_hub_cidr }}"
-    comment: provision-serveur-beszel
-  when:
-    - ufw_enabled | bool
-    - beszel_agent_enabled | bool
-    - beszel_hub_cidr | length > 0
     - not ansible_check_mode or firewall_ufw_binary.stat.exists
 
 - name: Définir la politique entrante par défaut (deny)
