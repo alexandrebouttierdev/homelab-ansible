@@ -66,26 +66,29 @@ coolify_ports:
   - 80
   - 443
 
-# Supervision et administration hôte : Homelab Manager (binaire natif systemd)
-# https://github.com/alexandrebouttierdev/homelab-manager
-homelab_manager_enabled: true
+# Supervision et administration hôte : MonoOps (binaire natif systemd)
+# https://github.com/alexandrebouttierdev/monoops
+monoops_enabled: true
 # Version et empreinte SHA-256 (fichier SHA256SUMS de la release) de l'archive.
 # Mettre à jour les deux valeurs ensemble après vérification indépendante.
-homelab_manager_version: "2.3.1"
-homelab_manager_sha256: "43b8869a9232c8195663ea4b9688cfc080bccffb6783bea0c453371104844065"
-homelab_manager_arch: amd64
+# 3.0.0 est la première release publiée sous le nom MonoOps (archives
+# monoops_<version>_linux_<arch>.tar.gz) : renseigner son empreinte amd64 dès
+# sa publication. Tant qu'elle est vide, le rôle s'arrête sur son assertion.
+monoops_version: "3.0.0"
+monoops_sha256: ""
+monoops_arch: amd64
 # 8080 (défaut amont) est pris par le proxy Traefik de Coolify.
-homelab_manager_port: 9090
-homelab_manager_metrics_retention_days: 7
+monoops_port: 9090
+monoops_metrics_retention_days: 7
 # Modules optionnels (chacun installe sa règle polkit dédiée).
-homelab_manager_backup_enabled: true
-homelab_manager_vulnscan_enabled: true
-homelab_manager_journal_vacuum_enabled: true
-homelab_manager_power_actions_enabled: true
-# Grype (module Vulnérabilités) : version figée par Homelab Manager et
+monoops_backup_enabled: true
+monoops_vulnscan_enabled: true
+monoops_journal_vacuum_enabled: true
+monoops_power_actions_enabled: true
+# Grype (module Vulnérabilités) : version figée par MonoOps et
 # empreinte du .deb amd64 (grype_<version>_checksums.txt de la release).
-homelab_manager_grype_version: "0.121.3"
-homelab_manager_grype_sha256: "4a4fc1c323cbe19f17aed5ed6dc4e0867198bb4fe3d5552579c10f9085310fa1"
+monoops_grype_version: "0.121.3"
+monoops_grype_sha256: "4a4fc1c323cbe19f17aed5ed6dc4e0867198bb4fe3d5552579c10f9085310fa1"
 
 # Cloudflare Tunnel natif (systemd)
 # Activer après avoir renseigné cloudflared_tunnel_token dans vault.yml

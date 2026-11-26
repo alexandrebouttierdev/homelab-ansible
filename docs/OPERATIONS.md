@@ -59,8 +59,8 @@ Ansible tant que les dépendances réelles n’ont pas été vérifiées.
 ## Supervision
 
 ```bash
-sudo systemctl status homelab-manager.service homelab-docker-proxy.socket
-journalctl -u homelab-manager -n 20     # version démarrée, clé du coffre chargée
-journalctl -u homelab-vulnscan -n 20    # dernier scan Grype
+sudo systemctl status monoops.service monoops-docker-proxy.socket
+journalctl -u monoops -n 20     # version démarrée, clé du coffre chargée
+journalctl -u monoops-vulnscan -n 20    # dernier scan Grype
 sudo systemctl status cloudflared-homelab.service
 ```

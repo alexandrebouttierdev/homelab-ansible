@@ -68,49 +68,49 @@
     - coolify_enabled | bool
     - not ansible_check_mode
 
-- name: Vérifier que Homelab Manager et son proxy Docker sont actifs
+- name: Vérifier que MonoOps et son proxy Docker sont actifs
   ansible.builtin.systemd_service:
     name: "{{ item }}"
     state: started
     enabled: true
   check_mode: true
-  register: verify_homelab_manager
-  failed_when: verify_homelab_manager is changed or verify_homelab_manager is failed
+  register: verify_monoops
+  failed_when: verify_monoops is changed or verify_monoops is failed
   loop:
-    - homelab-docker-proxy.socket
-    - homelab-manager.service
+    - monoops-docker-proxy.socket
+    - monoops.service
   when:
     - not ansible_check_mode
-    - homelab_manager_enabled | bool
+    - monoops_enabled | bool
 
-- name: Vérifier que Homelab Manager répond en HTTP
+- name: Vérifier que MonoOps répond en HTTP
   ansible.builtin.uri:
-    url: "http://127.0.0.1:{{ homelab_manager_port }}/health"
+    url: "http://127.0.0.1:{{ monoops_port }}/health"
     status_code: 200
-  register: verify_homelab_manager_http
+  register: verify_monoops_http
   retries: 5
   delay: 3
-  until: verify_homelab_manager_http.status == 200
+  until: verify_monoops_http.status == 200
   when:
     - not ansible_check_mode
-    - homelab_manager_enabled | bool
+    - monoops_enabled | bool
 
-- name: Vérifier la présence de la clé chiffrée du coffre Homelab Manager
+- name: Vérifier la présence de la clé chiffrée du coffre MonoOps
   ansible.builtin.stat:
-    path: /etc/credstore.encrypted/homelab-manager-secrets-key
-  register: verify_homelab_manager_key
-  when: homelab_manager_enabled | bool
+    path: /etc/credstore.encrypted/monoops-secrets-key
+  register: verify_monoops_key
+  when: monoops_enabled | bool
 
-- name: Exiger la clé du coffre Homelab Manager après un déploiement réel
+- name: Exiger la clé du coffre MonoOps après un déploiement réel
   ansible.builtin.assert:
     that:
-      - verify_homelab_manager_key.stat.exists
+      - verify_monoops_key.stat.exists
     fail_msg: >-
       Clé du coffre absente : double authentification, canaux à secret et
-      sauvegardes indisponibles. Relancer le rôle homelab_manager.
+      sauvegardes indisponibles. Relancer le rôle monoops.
   when:
     - not ansible_check_mode
-    - homelab_manager_enabled | bool
+    - monoops_enabled | bool
 
 - name: Vérifier que le tunnel Cloudflare est actif
   ansible.builtin.systemd_service:
@@ -148,7 +148,7 @@
       - >-
         Coolify : {{ 'http://' ~ (ansible_host | default(inventory_hostname)) ~ ':8000' if coolify_enabled | bool else 'désactivé' }}
       - >-
-        Homelab Manager : {{ 'http://' ~ (ansible_host | default(inventory_hostname)) ~ ':' ~ (homelab_manager_port | string) if homelab_manager_enabled | bool else 'désactivé' }}
+        MonoOps : {{ 'http://' ~ (ansible_host | default(inventory_hostname)) ~ ':' ~ (monoops_port | string) if monoops_enabled | bool else 'désactivé' }}
       - "Prochaine étape : docs/DEPLOIEMENT-APPLICATIONS.md"
       - "Sauvegardes : docs/SAUVEGARDES.md"
       - "============================================================"

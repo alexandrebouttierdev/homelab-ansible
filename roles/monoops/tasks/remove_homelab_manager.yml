@@ -1,0 +1,78 @@
+---
+# Homelab Manager a été renommé MonoOps (release 3.0.0) sans migration :
+# MonoOps repart d'une base vide. L'ancienne installation écoute sur le même
+# port et ses règles polkit accordent encore des droits au compte
+# homelab-manager : on l'arrête et on retire ses unités, binaires, règles et
+# comptes. Ses données (/var/lib/homelab-manager, /opt/homelab-manager,
+# /etc/homelab-manager, clé du coffre…) sont laissées en place ; leur
+# suppression est manuelle (docs/DEPLOIEMENT-APPLICATIONS.md).
+# Ces tâches peuvent être retirées une fois tous les hôtes migrés.
+- name: Détecter l'ancienne installation Homelab Manager
+  ansible.builtin.stat:
+    path: /etc/systemd/system/homelab-manager.service
+  register: monoops_legacy_unit_stat
+
+- name: Retirer Homelab Manager
+  when: monoops_legacy_unit_stat.stat.exists
+  block:
+    - name: Arrêter et désactiver les unités Homelab Manager
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+      loop:
+        - homelab-manager.service
+        - homelab-docker-proxy.socket
+        - homelab-docker-proxy.service
+
+    - name: Arrêter les unités des modules Homelab Manager
+      ansible.builtin.systemd_service:
+        name: homelab-vulnscan.service
+        state: stopped
+      failed_when: false
+
+    - name: Supprimer les fichiers de Homelab Manager
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/systemd/system/homelab-manager.service
+        - /etc/systemd/system/homelab-docker-proxy.service
+        - /etc/systemd/system/homelab-docker-proxy.socket
+        - /etc/systemd/system/homelab-backup@.service
+        - /etc/systemd/system/homelab-backup@restore-in-place.service.d
+        - /etc/systemd/system/homelab-vulnscan.service
+        - /etc/systemd/system/homelab-journal-vacuum@.service
+        - /usr/local/bin/homelab-manager
+        - /usr/local/bin/homelab-docker-proxy
+        - /usr/local/bin/homelab-backup-runner
+        - /etc/polkit-1/rules.d/50-homelab-manager-backup.rules
+        - /etc/polkit-1/rules.d/50-homelab-manager-vulnscan.rules
+        - /etc/polkit-1/rules.d/50-homelab-manager-maintenance.rules
+        - /etc/polkit-1/rules.d/50-homelab-manager-power.rules
+        - /etc/tmpfiles.d/homelab-backup.conf
+        - /etc/tmpfiles.d/homelab-vulnscan.conf
+
+    - name: Recharger systemd après le retrait de Homelab Manager
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+    # homelab-docker-proxy était membre du groupe docker (≈ root).
+    - name: Supprimer les comptes système de Homelab Manager
+      ansible.builtin.user:
+        name: "{{ item }}"
+        state: absent
+        remove: false
+      loop:
+        - homelab-manager
+        - homelab-docker-proxy
+        - homelab-vulnscan
+
+    - name: Supprimer les groupes système de Homelab Manager
+      ansible.builtin.group:
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - homelab-manager
+        - homelab-docker-proxy
+        - homelab-vulnscan

@@ -53,16 +53,16 @@
     - ufw_enabled | bool
     - not ansible_check_mode or firewall_ufw_binary.stat.exists
 
-- name: Autoriser Homelab Manager depuis le réseau d'administration ({{ admin_cidr }})
+- name: Autoriser MonoOps depuis le réseau d'administration ({{ admin_cidr }})
   community.general.ufw:
     rule: allow
-    port: "{{ homelab_manager_port | string }}"
+    port: "{{ monoops_port | string }}"
     proto: tcp
     from_ip: "{{ admin_cidr }}"
-    comment: provision-serveur-homelab-manager
+    comment: provision-serveur-monoops
   when:
     - ufw_enabled | bool
-    - homelab_manager_enabled | bool
+    - monoops_enabled | bool
     - not ansible_check_mode or firewall_ufw_binary.stat.exists
 
 - name: Autoriser les ports Coolify depuis le réseau d'administration ({{ admin_cidr }})

@@ -51,7 +51,7 @@ limitées. Les recommandations doivent tenir compte de cette réalité.
 ## 1.2 Services installés directement sur Debian
 
 -   Docker Engine.
--   Homelab Manager.
+-   MonoOps.
 -   Ansible.
 -   Cloudflare Tunnel (`cloudflared`), géré par systemd.
 
@@ -102,7 +102,7 @@ notamment :
 
 Les rôles connus couvrent notamment : - `base` - `admin_user` -
 `apparmor` - `ssh` - `firewall` - `fail2ban` - `sysctl` - `swap` -
-`docker` - `homelab_manager`
+`docker` - `monoops`
 
 Cette liste est indicative. Vérifie les fichiers réellement présents et
 ne présume jamais de leur contenu.
@@ -239,7 +239,7 @@ Privilégie les sources officielles :
 4.  CISA Known Exploited Vulnerabilities :
     https://www.cisa.gov/known-exploited-vulnerabilities-catalog
 5.  Avis de sécurité officiels des éditeurs concernés, notamment Docker,
-    OpenSSH, Cloudflare, Homelab Manager et PostgreSQL.
+    OpenSSH, Cloudflare, MonoOps et PostgreSQL.
 
 Consulte les dates de publication et de dernière mise à jour. Cite les
 sources utilisées et fournis des liens directs vers les fiches CVE et
@@ -260,7 +260,7 @@ composants réseau effectivement utilisés.
 **Conteneurs :** - Docker Engine ; - Docker Compose ; - containerd ; -
 runc ; - composants réseau Docker.
 
-**Services :** - Homelab Manager ; - Grype ; - restic ; - cloudflared ; -
+**Services :** - MonoOps ; - Grype ; - restic ; - cloudflared ; -
 PostgreSQL ; - Coolify et ses composants ; - images et dépendances des
 applications NestJS, lorsque les informations sont accessibles.
 
@@ -452,7 +452,7 @@ Ne déplace aucune donnée sans vérifier les chemins et dépendances.
 
 ## 5.4 Supervision
 
-Évalue l'impact de : - Homelab Manager ; - services systemd associés
+Évalue l'impact de : - MonoOps ; - services systemd associés
 (proxy Docker, sauvegardes restic, scans Grype).
 
 La supervision doit rester légère.
@@ -528,7 +528,7 @@ Respecte strictement la répartition suivante.
 
 Ansible gère principalement : - configuration système Debian ; -
 sécurité ; - utilisateurs ; - SSH ; - firewall ; - paquets système ; -
-services natifs ; - Docker Engine ; - Homelab Manager ; - Cloudflare
+services natifs ; - Docker Engine ; - MonoOps ; - Cloudflare
 Tunnel.
 
 ## Coolify

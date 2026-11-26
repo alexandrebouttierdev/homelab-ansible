@@ -1,8 +1,12 @@
 ---
-# Homelab Manager : supervision et administration de l'hôte (binaire Go natif,
+# MonoOps : supervision et administration de l'hôte (binaire Go natif,
 # SQLite, interface web). Installé depuis une release GitHub vérifiée par
 # SHA-256. Les sauvegardes restic qu'il pilote sont configurées dans son
 # interface ; elles ne remplacent pas les sauvegardes PostgreSQL de Coolify.
-- name: Installer Homelab Manager
+- name: Retirer l'ancienne installation Homelab Manager
+  ansible.builtin.import_tasks: remove_homelab_manager.yml
+  when: monoops_enabled | bool
+
+- name: Installer MonoOps
   ansible.builtin.import_tasks: install.yml
-  when: homelab_manager_enabled | bool
+  when: monoops_enabled | bool

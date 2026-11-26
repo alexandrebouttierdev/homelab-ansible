@@ -26,8 +26,8 @@
       tags: [docker]
     - role: coolify
       tags: [coolify]
-    - role: homelab_manager
-      tags: [monitoring, homelab_manager]
+    - role: monoops
+      tags: [monitoring, monoops]
     - role: cloudflared
       tags: [network, cloudflared]
     - role: verify

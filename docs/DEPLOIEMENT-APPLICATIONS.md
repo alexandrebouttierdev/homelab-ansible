@@ -1,7 +1,7 @@
-# Guide post-provisionnement : Coolify, Homelab Manager, PostgreSQL & NestJS
+# Guide post-provisionnement : Coolify, MonoOps, PostgreSQL & NestJS
 
 Après `playbooks/site.yml`, le serveur Debian 13 dispose de Coolify et de
-Homelab Manager ; l'installation initiale des deux est gérée par Ansible.
+MonoOps ; l'installation initiale des deux est gérée par Ansible.
 
 ---
 
@@ -19,7 +19,7 @@ L'installation est sautée si `/data/coolify/source/.env` existe déjà.
 
 ---
 
-## 2. Homelab Manager
+## 2. MonoOps
 
 1. Ouvrir `http://IP_LOCALE_SERVEUR:9090` depuis `admin_cidr` **juste après le
    déploiement** : le compte initial est `admin` / `admin` et l'interface
@@ -30,7 +30,7 @@ L'installation est sautée si `/data/coolify/source/.env` existe déjà.
    et l'horaire, puis « Initialiser le dépôt ». Conserver hors ligne le mot de
    passe affiché une seule fois.
 4. Le premier scan Grype démarre 2 minutes après le premier lancement ; il
-   télécharge une base d'environ 3,4 Go dans `/var/cache/homelab-vulnscan`.
+   télécharge une base d'environ 3,4 Go dans `/var/cache/monoops-vulnscan`.
 
 Pour réappliquer seulement ce rôle (et sa règle UFW) :
 
@@ -41,18 +41,40 @@ ansible-playbook playbooks/monitoring.yml --ask-become-pass
 ### Mise à jour de version
 
 1. Sauvegarder la base :
-   `sudo -u homelab-manager sqlite3 /var/lib/homelab-manager/homelab-manager.db ".backup '/var/lib/homelab-manager/backup-$(date +%F).db'"`
+   `sudo -u monoops sqlite3 /var/lib/monoops/monoops.db ".backup '/var/lib/monoops/backup-$(date +%F).db'"`
    (paquet `sqlite3`).
 2. Lire les notes de la release : elles signalent les unités ou règles
    polkit modifiées.
-3. Mettre à jour `homelab_manager_version` et `homelab_manager_sha256`
+3. Mettre à jour `monoops_version` et `monoops_sha256`
    (fichier `SHA256SUMS` de la release) dans `inventory/group_vars/all/main.yml`,
    puis relancer `playbooks/monitoring.yml`. Les migrations SQLite
    s'appliquent au démarrage.
 4. Retour arrière : remettre l'ancienne version et son empreinte, relancer le
    playbook, et restaurer la base sauvegardée si une migration l'a modifiée.
-   Les anciennes releases restent dans `/opt/homelab-manager/releases/` et
+   Les anciennes releases restent dans `/opt/monoops/releases/` et
    peuvent être supprimées à la main.
+
+### Passage de Homelab Manager à MonoOps
+
+Homelab Manager a été renommé MonoOps à la version 3.0.0 (comptes, unités,
+chemins, binaires et archives `monoops_*`), **sans migration** : MonoOps
+repart d'une base vide (compte `admin` / `admin`, double authentification et
+dépôts restic à reconfigurer ; un dépôt restic existant se rattache avec son
+mot de passe).
+
+Le rôle `monoops` arrête puis retire l'ancienne installation (unités,
+binaires, règles polkit et tmpfiles, comptes `homelab-*`) avant d'installer
+MonoOps sur le même port. Ses données restent en place ; une fois MonoOps
+vérifié, elles se suppriment à la main :
+
+```bash
+sudo rm -rf /var/lib/homelab-manager /opt/homelab-manager /etc/homelab-manager \
+  /var/lib/homelab-backup /var/lib/homelab-vulnscan /var/cache/homelab-vulnscan \
+  /etc/credstore.encrypted/homelab-manager-secrets-key
+```
+
+Les fichiers restaurés en quarantaine dans `/var/lib/homelab-backup/restore` sont à
+récupérer avant si besoin.
 
 ---
 

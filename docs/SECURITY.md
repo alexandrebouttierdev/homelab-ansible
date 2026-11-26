@@ -3,7 +3,7 @@
 ## Périmètre
 
 Ansible gère SSH, AppArmor, UFW, Fail2ban, Docker, l'installation initiale
-de Coolify, Homelab Manager et Cloudflare Tunnel. Coolify reste
+de Coolify, MonoOps et Cloudflare Tunnel. Coolify reste
 responsable de PostgreSQL,
 des applications, des conteneurs applicatifs et des sauvegardes.
 
@@ -27,7 +27,7 @@ Vérifier cette politique avec `docker ps`, `docker network inspect` et
 `iptables -S DOCKER-USER`.
 
 Ne pas publier PostgreSQL ou Redis sur Internet ou sur le LAN. Les interfaces
-Coolify et Homelab Manager sont accessibles uniquement depuis `admin_cidr`. Le script
+Coolify et MonoOps sont accessibles uniquement depuis `admin_cidr`. Le script
 officiel Coolify s'exécute en root et modifie Docker ; le mode `--check` ne
 simule pas cette installation.
 
@@ -70,14 +70,14 @@ Au premier provisionnement, `scripts/first-run.sh` lance
 de lancer le préflight, qui demande le mot de passe sudo d’`alex`. Une session
 SSH initiale et le mot de passe root restent nécessaires.
 
-## Homelab Manager
+## MonoOps
 
-- Le Manager tourne sous le compte `homelab-manager`, jamais en root, et n'est
-  pas membre du groupe `docker` : il passe par `homelab-docker-proxy`, en
+- Le Manager tourne sous le compte `monoops`, jamais en root, et n'est
+  pas membre du groupe `docker` : il passe par `monoops-docker-proxy`, en
   lecture seule (`HOMELAB_DOCKER_PROXY_CONTAINER_ACTIONS=false`,
   `docker_actions_enabled: false`).
 - Les actions privilégiées passent par des règles polkit dédiées
-  (`/etc/polkit-1/rules.d/50-homelab-manager-*.rules`) : sauvegardes,
+  (`/etc/polkit-1/rules.d/50-monoops-*.rules`) : sauvegardes,
   scan de vulnérabilités, nettoyage du journal, redémarrage et extinction.
   Un administrateur du Manager peut redémarrer ou éteindre la machine et
   sauvegarder n'importe quel fichier vers le dépôt choisi : réserver ce rôle.
@@ -85,9 +85,9 @@ SSH initiale et le mot de passe root restent nécessaires.
   `admin` dès la première connexion et activer la double authentification.
   Ne l'exposer via Cloudflare Tunnel qu'avec Cloudflare Access ; les passkeys
   exigent un nom de domaine et HTTPS.
-- La clé du coffre (`/etc/credstore.encrypted/homelab-manager-secrets-key`)
+- La clé du coffre (`/etc/credstore.encrypted/monoops-secrets-key`)
   est liée à la machine (TPM ou clé de l'hôte) : la perdre rend illisibles les
   secrets TOTP, jetons des canaux et mots de passe des dépôts restic.
-- Les archives Homelab Manager et le paquet Grype sont vérifiés par SHA-256
+- Les archives MonoOps et le paquet Grype sont vérifiés par SHA-256
   (empreintes épinglées dans `main.yml`). La signature cosign des sommes Grype
   n'est pas vérifiée par Ansible : la vérifier lors d'un changement de version.

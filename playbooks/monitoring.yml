@@ -1,9 +1,9 @@
 ---
-- name: Installation de la supervision hôte (Homelab Manager)
+- name: Installation de la supervision hôte (MonoOps)
   hosts: homelab
   become: true
   roles:
     - role: firewall
       tags: [security, firewall]
-    - role: homelab_manager
-      tags: [monitoring, homelab_manager]
+    - role: monoops
+      tags: [monitoring, monoops]

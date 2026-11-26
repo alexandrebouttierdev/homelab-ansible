@@ -1,0 +1,286 @@
+---
+- name: Vérifier la version épinglée et les empreintes de MonoOps
+  ansible.builtin.assert:
+    that:
+      - monoops_version is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+      - monoops_sha256 is match('^[a-fA-F0-9]{64}$')
+      - monoops_arch in ['amd64', 'arm64']
+      - monoops_port | int > 0
+      - >-
+        not (monoops_vulnscan_enabled | bool) or (
+        monoops_grype_version is match('^[0-9]+\.[0-9]+\.[0-9]+$') and
+        monoops_grype_sha256 is match('^[a-fA-F0-9]{64}$'))
+    fail_msg: >-
+      Définir monoops_version, monoops_sha256 (et, pour Grype,
+      monoops_grype_version et monoops_grype_sha256) avec des
+      releases vérifiées.
+
+- name: Refuser un port déjà utilisé par Coolify
+  ansible.builtin.assert:
+    that:
+      - monoops_port | int not in (coolify_ports | map('int') | list + [8080])
+    fail_msg: >-
+      Le port {{ monoops_port }} est réservé à Coolify (8080 : tableau
+      de bord Traefik du proxy Coolify). Choisir un autre monoops_port.
+  when: coolify_enabled | bool
+
+- name: Vérifier si la release épinglée est déjà extraite
+  ansible.builtin.stat:
+    path: "{{ monoops_release_dir }}/bin/monoops"
+  register: monoops_release_stat
+
+- name: Vérifier si l'unité MonoOps existe déjà
+  ansible.builtin.stat:
+    path: /etc/systemd/system/monoops.service
+  register: monoops_unit_stat
+
+- name: Signaler les tâches MonoOps non simulables
+  ansible.builtin.debug:
+    msg: >-
+      La release {{ monoops_version }} n'est pas encore extraite :
+      l'installation des binaires, unités, règles polkit et de Grype sera
+      effectuée lors de l'application réelle du playbook.
+  when:
+    - ansible_check_mode
+    - not monoops_release_stat.stat.exists
+
+- name: Installer les dépendances de MonoOps
+  ansible.builtin.apt:
+    name: "{{ monoops_packages }}"
+    state: present
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+
+- name: Créer les groupes système de MonoOps
+  ansible.builtin.group:
+    name: "{{ item }}"
+    system: true
+    state: present
+  loop: "{{ monoops_accounts }}"
+
+- name: Créer les comptes système de MonoOps
+  ansible.builtin.user:
+    name: "{{ item }}"
+    group: "{{ item }}"
+    system: true
+    shell: /usr/sbin/nologin
+    home: /nonexistent
+    create_home: false
+    state: present
+  loop: "{{ monoops_accounts }}"
+
+# L'appartenance au groupe docker ≈ root : réservée au proxy restreint, qui
+# n'autorise que des routes GET en liste blanche (actions sur les conteneurs
+# désactivées).
+- name: Autoriser le proxy restreint à lire le socket Docker
+  ansible.builtin.user:
+    name: monoops-docker-proxy
+    groups: docker
+    append: true
+  when: docker_install | bool
+
+- name: Créer les répertoires de MonoOps
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ monoops_base_dir }}"
+    - "{{ monoops_download_dir }}"
+    - "{{ monoops_releases_dir }}"
+    - "{{ monoops_config_dir }}"
+  register: monoops_dirs_result
+
+# En --check, les répertoires ci-dessus ne sont que simulés : get_url et
+# template échoueraient alors sur une destination absente.
+- name: Détecter les répertoires MonoOps seulement simulés
+  ansible.builtin.set_fact:
+    monoops_dirs_simulated: "{{ ansible_check_mode and monoops_dirs_result is changed }}"
+
+- name: Télécharger et extraire la release MonoOps
+  when:
+    - not monoops_release_stat.stat.exists
+    - not monoops_dirs_simulated
+  block:
+    - name: Télécharger l'archive MonoOps {{ monoops_version }}
+      ansible.builtin.get_url:
+        url: "{{ monoops_release_url }}"
+        dest: "{{ monoops_download_dir }}/{{ monoops_release_name }}.tar.gz"
+        checksum: "sha256:{{ monoops_sha256 }}"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Extraire l'archive MonoOps
+      ansible.builtin.unarchive:
+        src: "{{ monoops_download_dir }}/{{ monoops_release_name }}.tar.gz"
+        dest: "{{ monoops_releases_dir }}"
+        remote_src: true
+        owner: root
+        group: root
+        creates: "{{ monoops_release_dir }}/bin/monoops"
+      when: not ansible_check_mode
+
+- name: Installer les fichiers de la release
+  when: not ansible_check_mode or monoops_release_stat.stat.exists
+  block:
+    - name: Installer les binaires MonoOps
+      ansible.builtin.copy:
+        src: "{{ monoops_release_dir }}/bin/{{ item }}"
+        dest: "/usr/local/bin/{{ item }}"
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0755"
+      loop: "{{ monoops_binaries }}"
+      notify:
+        - Restart monoops-docker-proxy
+        - Restart monoops
+
+    - name: Installer les unités systemd de MonoOps
+      ansible.builtin.copy:
+        src: "{{ monoops_release_dir }}/deployments/systemd/{{ item }}"
+        dest: "/etc/systemd/system/{{ item }}"
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0644"
+      loop: "{{ monoops_units }}"
+      notify:
+        - Reload systemd for MonoOps
+        - Restart monoops-docker-proxy
+        - Restart monoops
+
+    - name: Créer le répertoire du drop-in de restauration en place
+      ansible.builtin.file:
+        path: /etc/systemd/system/monoops-backup@restore-in-place.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      when: monoops_backup_enabled | bool
+
+    - name: Installer le drop-in de restauration en place
+      ansible.builtin.copy:
+        src: "{{ monoops_release_dir }}/deployments/systemd/monoops-backup@restore-in-place.service.d/50-in-place.conf"
+        dest: /etc/systemd/system/monoops-backup@restore-in-place.service.d/50-in-place.conf
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0644"
+      when: monoops_backup_enabled | bool
+      notify: Reload systemd for MonoOps
+
+    - name: Installer les règles tmpfiles.d des modules
+      ansible.builtin.copy:
+        src: "{{ monoops_release_dir }}/deployments/tmpfiles/{{ item }}"
+        dest: "/etc/tmpfiles.d/{{ item }}"
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0644"
+      loop: "{{ monoops_tmpfiles }}"
+      register: monoops_tmpfiles_result
+
+    # Crée les répertoires d'échange avant le démarrage du Manager :
+    # ses ReadWritePaths= optionnels sont ignorés s'ils n'existent pas.
+    - name: Créer les répertoires d'échange des modules
+      ansible.builtin.command:
+        argv:
+          - systemd-tmpfiles
+          - --create
+          - "/etc/tmpfiles.d/{{ item.item }}"
+      loop: "{{ monoops_tmpfiles_result.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      when: item is changed
+      changed_when: true
+      notify: Restart monoops
+
+    # Chaque règle n'autorise que le compte monoops, sur les seules
+    # unités ou actions de son module. polkitd les recharge automatiquement.
+    - name: Installer les règles polkit des modules
+      ansible.builtin.copy:
+        src: "{{ monoops_release_dir }}/deployments/polkit/{{ item }}"
+        dest: "/etc/polkit-1/rules.d/{{ item }}"
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0644"
+      loop: "{{ monoops_polkit_rules }}"
+
+- name: Installer Grype pour le module Vulnérabilités
+  when: monoops_vulnscan_enabled | bool
+  block:
+    - name: Télécharger le paquet Grype {{ monoops_grype_version }}
+      ansible.builtin.get_url:
+        url: "{{ monoops_grype_url }}"
+        dest: "{{ monoops_download_dir }}/{{ monoops_grype_deb }}"
+        checksum: "sha256:{{ monoops_grype_sha256 }}"
+        owner: root
+        group: root
+        mode: "0644"
+      register: monoops_grype_download
+      when: not monoops_dirs_simulated
+
+    - name: Installer le paquet Grype
+      ansible.builtin.apt:
+        deb: "{{ monoops_download_dir }}/{{ monoops_grype_deb }}"
+        state: present
+      when: >-
+        not ansible_check_mode or
+        (monoops_grype_download is not skipped and
+         monoops_grype_download is not changed)
+
+- name: Déployer la configuration de MonoOps
+  ansible.builtin.template:
+    src: manager.yaml.j2
+    dest: "{{ monoops_config_dir }}/manager.yaml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart monoops
+  when: not monoops_dirs_simulated
+
+- name: Créer le magasin des secrets chiffrés systemd
+  ansible.builtin.file:
+    path: "{{ monoops_credential_path | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+# Clé du coffre (TOTP, jetons des canaux, mots de passe restic) : 32 octets
+# aléatoires générés sur le serveur et chiffrés par systemd-creds (TPM 2.0 si
+# présent, sinon clé de l'hôte). Jamais régénérée : la remplacer rendrait
+# illisibles les secrets déjà enregistrés.
+- name: Générer la clé chiffrée du coffre de secrets (une seule fois)
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail &&
+      umask 077 &&
+      head -c 32 /dev/urandom | base64 |
+      systemd-creds encrypt --name=monoops-secrets-key -
+      {{ monoops_credential_path }}
+    executable: /bin/bash
+    creates: "{{ monoops_credential_path }}"
+  no_log: true
+  notify: Restart monoops
+
+- name: Activer et démarrer le socket du proxy Docker restreint
+  ansible.builtin.systemd_service:
+    name: monoops-docker-proxy.socket
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: not ansible_check_mode or monoops_unit_stat.stat.exists
+
+- name: Activer et démarrer MonoOps
+  ansible.builtin.systemd_service:
+    name: monoops.service
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: not ansible_check_mode or monoops_unit_stat.stat.exists

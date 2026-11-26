@@ -1,0 +1,49 @@
+---
+# Chemins internes du rôle : dérivés de la version épinglée dans
+# inventory/group_vars/all/main.yml, à ne pas surcharger.
+monoops_release_name: "monoops_{{ monoops_version }}_linux_{{ monoops_arch }}"
+monoops_release_url: >-
+  https://github.com/alexandrebouttierdev/monoops/releases/download/v{{
+  monoops_version }}/{{ monoops_release_name }}.tar.gz
+monoops_base_dir: /opt/monoops
+monoops_download_dir: "{{ monoops_base_dir }}/downloads"
+monoops_releases_dir: "{{ monoops_base_dir }}/releases"
+monoops_release_dir: "{{ monoops_releases_dir }}/{{ monoops_release_name }}"
+monoops_config_dir: /etc/monoops
+monoops_credential_path: /etc/credstore.encrypted/monoops-secrets-key
+
+monoops_grype_deb: "grype_{{ monoops_grype_version }}_linux_{{ monoops_arch }}.deb"
+monoops_grype_url: >-
+  https://github.com/anchore/grype/releases/download/v{{
+  monoops_grype_version }}/{{ monoops_grype_deb }}
+
+monoops_binaries:
+  - monoops
+  - monoops-docker-proxy
+  - monoops-backup-runner
+
+# Comptes système : le Manager n'est jamais root ni membre du groupe docker ;
+# seul le proxy restreint accède au socket Docker.
+monoops_accounts: >-
+  {{ ['monoops', 'monoops-docker-proxy']
+     + (['monoops-vulnscan'] if monoops_vulnscan_enabled | bool else []) }}
+
+monoops_packages: >-
+  {{ ['polkitd']
+     + (['restic'] if monoops_backup_enabled | bool else []) }}
+
+monoops_units: >-
+  {{ ['monoops.service', 'monoops-docker-proxy.service', 'monoops-docker-proxy.socket']
+     + (['monoops-backup@.service'] if monoops_backup_enabled | bool else [])
+     + (['monoops-vulnscan.service'] if monoops_vulnscan_enabled | bool else [])
+     + (['monoops-journal-vacuum@.service'] if monoops_journal_vacuum_enabled | bool else []) }}
+
+monoops_tmpfiles: >-
+  {{ (['monoops-backup.conf'] if monoops_backup_enabled | bool else [])
+     + (['monoops-vulnscan.conf'] if monoops_vulnscan_enabled | bool else []) }}
+
+monoops_polkit_rules: >-
+  {{ (['50-monoops-backup.rules'] if monoops_backup_enabled | bool else [])
+     + (['50-monoops-vulnscan.rules'] if monoops_vulnscan_enabled | bool else [])
+     + (['50-monoops-maintenance.rules'] if monoops_journal_vacuum_enabled | bool else [])
+     + (['50-monoops-power.rules'] if monoops_power_actions_enabled | bool else []) }}
