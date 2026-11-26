@@ -1,11 +1,27 @@
 ---
 - name: Bootstrap initial de sudo pour Debian 13
   hosts: homelab
-  gather_facts: true
+  # Les facts sont collectés après l'installation de Python : une Debian
+  # minimale (sans « utilitaires usuels du système ») ne fournit pas python3.
+  gather_facts: false
   become: true
   become_method: ansible.builtin.su
   become_user: root
   tasks:
+    - name: Installer python3 si absent (prérequis des modules Ansible)
+      ansible.builtin.raw: >-
+        if command -v python3 >/dev/null 2>&1; then
+        echo "python3-present";
+        else
+        apt-get update -q && DEBIAN_FRONTEND=noninteractive
+        apt-get install -y -q --no-install-recommends python3;
+        fi
+      register: bootstrap_python
+      changed_when: "'python3-present' not in bootstrap_python.stdout"
+
+    - name: Collecter les facts
+      ansible.builtin.setup:
+
     - name: Vérifier que la cible est Debian 13
       ansible.builtin.assert:
         that:
