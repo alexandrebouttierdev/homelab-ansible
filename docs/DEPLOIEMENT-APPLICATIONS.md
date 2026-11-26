@@ -54,28 +54,6 @@ ansible-playbook playbooks/monitoring.yml --ask-become-pass
    Les anciennes releases restent dans `/opt/monoops/releases/` et
    peuvent être supprimées à la main.
 
-### Passage de Homelab Manager à MonoOps
-
-Homelab Manager a été renommé MonoOps à la version 3.0.0 (comptes, unités,
-chemins, binaires et archives `monoops_*`), **sans migration** : MonoOps
-repart d'une base vide (compte `admin` / `admin`, double authentification et
-dépôts restic à reconfigurer ; un dépôt restic existant se rattache avec son
-mot de passe).
-
-Le rôle `monoops` arrête puis retire l'ancienne installation (unités,
-binaires, règles polkit et tmpfiles, comptes `homelab-*`) avant d'installer
-MonoOps sur le même port. Ses données restent en place ; une fois MonoOps
-vérifié, elles se suppriment à la main :
-
-```bash
-sudo rm -rf /var/lib/homelab-manager /opt/homelab-manager /etc/homelab-manager \
-  /var/lib/homelab-backup /var/lib/homelab-vulnscan /var/cache/homelab-vulnscan \
-  /etc/credstore.encrypted/homelab-manager-secrets-key
-```
-
-Les fichiers restaurés en quarantaine dans `/var/lib/homelab-backup/restore` sont à
-récupérer avant si besoin.
-
 ---
 
 ## 3. PostgreSQL & NestJS

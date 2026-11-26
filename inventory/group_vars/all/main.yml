@@ -71,9 +71,8 @@ coolify_ports:
 monoops_enabled: true
 # Version et empreinte SHA-256 (fichier SHA256SUMS de la release) de l'archive.
 # Mettre à jour les deux valeurs ensemble après vérification indépendante.
-# 3.0.0 est la première release publiée sous le nom MonoOps (archives
-# monoops_<version>_linux_<arch>.tar.gz) : renseigner son empreinte amd64 dès
-# sa publication. Tant qu'elle est vide, le rôle s'arrête sur son assertion.
+# Première release sous le nom MonoOps : renseigner l'empreinte amd64 dès sa
+# publication (le rôle s'arrête sur son assertion tant qu'elle est vide).
 monoops_version: "3.0.0"
 monoops_sha256: ""
 monoops_arch: amd64

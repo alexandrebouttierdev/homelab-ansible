@@ -98,9 +98,6 @@ Décision : la supervision de l'hôte est confiée à
 [MonoOps](https://github.com/alexandrebouttierdev/monoops),
 qui regroupe métriques hôte et Docker, journaux systemd, alertes, sauvegardes
 restic et scans Grype dans un seul service natif, sans conteneur ni terminal web.
-Anciennement Homelab Manager : renommé à la version 3.0.0 sans migration de
-données, l'ancienne installation est retirée par le rôle
-(`roles/monoops/tasks/remove_homelab_manager.yml`).
 
 - Installation par le rôle `monoops` depuis une release GitHub dont la
   version et le SHA-256 sont épinglés dans `inventory/group_vars/all/main.yml`.
