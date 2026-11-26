@@ -71,10 +71,8 @@ coolify_ports:
 monoops_enabled: true
 # Version et empreinte SHA-256 (fichier SHA256SUMS de la release) de l'archive.
 # Mettre à jour les deux valeurs ensemble après vérification indépendante.
-# Première release sous le nom MonoOps : renseigner l'empreinte amd64 dès sa
-# publication (le rôle s'arrête sur son assertion tant qu'elle est vide).
 monoops_version: "3.0.0"
-monoops_sha256: ""
+monoops_sha256: "121a4f1ba7622ed36e3cd0e21fcf18ba5f6780c5f08ceae4338f35bde3d5c3ca"
 monoops_arch: amd64
 # 8080 (défaut amont) est pris par le proxy Traefik de Coolify.
 monoops_port: 9090
